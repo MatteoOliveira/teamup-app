@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>TeamUp! — Design exploration</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: #F0EFEC; color: #1A2B4A; }
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; }
+  input, textarea { font-family: inherit; }
+  ::-webkit-scrollbar { display: none; }
+
+  @keyframes tu-typing {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-3px); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="tokens.jsx"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="phone.jsx"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="screens-1.jsx"></script>
+<script type="text/babel" src="screens-2.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect } = React;
+
+// Wrap a screen in a phone frame
+function Phone({ children, dark = false, label }) {
+  return (
+    <TUPhone width={390} height={844} dark={dark}>
+      {children}
+    </TUPhone>
+  );
+}
+
+function App() {
+  const [tweaks, setTweaks] = useTweaks(TWEAK_DEFAULTS);
+
+  // Live-apply primaryColor to the palette
+  useEffect(() => {
+    if (tweaks.primaryColor) {
+      window.TUPalette.orange = tweaks.primaryColor;
+      window.TUPalette.orangeSoft = tweaks.primaryColor + '22';
+      window.TUPalette.orangeDark = tweaks.primaryColor;
+      // sport color override
+      window.TUSports.basket.color = tweaks.primaryColor;
+    }
+    if (tweaks.accentColor) {
+      window.TUPalette.teal = tweaks.accentColor;
+      window.TUPalette.tealDark = tweaks.accentColor;
+      window.TUSports.foot.color = tweaks.accentColor;
+    }
+  }, [tweaks.primaryColor, tweaks.accentColor]);
+
+  // Onboarding state for the 3-slide artboard sequence
+  const [onbSlide, setOnbSlide] = useState(0);
+
+  return (
+    <>
+      <DesignCanvas>
+        {/* ── INTRO / BRAND ── */}
+        <DCSection id="brand" title="TeamUp!" subtitle="PWA de sport local · 6 écrans prioritaires + prototype cliquable">
+          <DCArtboard id="cover" label="Présentation" width={520} height={844}>
+            <div style={{ width: '100%', height: '100%', background: 'linear-gradient(160deg, #FF6B35 0%, #E5551F 35%, #1A2B4A 100%)', position: 'relative', overflow: 'hidden', padding: 40, color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div style={{ position: 'absolute', top: -60, right: -60, width: 280, height: 280, borderRadius: '50%', background: 'rgba(46,196,182,0.25)' }}/>
+              <div style={{ position: 'absolute', bottom: -100, left: -80, width: 320, height: 320, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }}/>
+              <div style={{ position: 'relative' }}>
+                <img src="assets/teamup-logo.png" style={{ width: 90, height: 90, objectFit: 'contain', filter: 'brightness(0) invert(1)', marginBottom: 24 }}/>
+                <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2, opacity: 0.85, marginBottom: 10 }}>PWA · DESIGN SYSTEM</div>
+                <div style={{ fontSize: 56, fontWeight: 800, letterSpacing: -1.5, lineHeight: 1, marginBottom: 18 }}>TeamUp!<br/>Le sport,<br/>en équipe.</div>
+                <div style={{ fontSize: 17, opacity: 0.85, lineHeight: 1.5, maxWidth: 380 }}>
+                  Trouve des matchs, réserve des terrains, joue avec ta team. Une PWA offline-first, 18-40 ans, sport de proximité.
+                </div>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
+                  {[
+                    { v: '6', l: 'écrans clés' },
+                    { v: '8', l: 'sports' },
+                    { v: 'iOS', l: 'frames' },
+                    { v: 'Live', l: 'tweaks' },
+                  ].map((s, i) => (
+                    <div key={i} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: 14, backdropFilter: 'blur(8px)' }}>
+                      <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.6 }}>{s.v}</div>
+                      <div style={{ fontSize: 11, opacity: 0.8, fontWeight: 600 }}>{s.l}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>← Active <strong>Tweaks</strong> en haut pour modifier la couleur primaire en direct.</div>
+              </div>
+            </div>
+          </DCArtboard>
+
+          <DCArtboard id="ds" label="Design system" width={460} height={844}>
+            <div style={{ width: '100%', height: '100%', background: '#FFF', padding: 28, fontSize: 12, color: '#1A2B4A', overflow: 'auto' }}>
+              <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: -0.4, marginBottom: 20 }}>Design tokens</div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8A93A6', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Couleurs · Brand</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 18 }}>
+                {[['#FF6B35','Orange'],['#2EC4B6','Teal'],['#1A2B4A','Navy']].map(([c,l],i) => (
+                  <div key={i}>
+                    <div style={{ height: 60, borderRadius: 10, background: c, marginBottom: 4 }}/>
+                    <div style={{ fontSize: 11, fontWeight: 700 }}>{l}</div>
+                    <div style={{ fontSize: 10, color: '#8A93A6', fontFamily: 'monospace' }}>{c}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8A93A6', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Sports · Accents</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+                {Object.entries(TUSports).map(([k, m]) => (
+                  <TUSportBadge key={k} sport={k} size="sm"/>
+                ))}
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8A93A6', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Niveaux</div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
+                <TULevelChip level="debutant"/>
+                <TULevelChip level="intermediaire"/>
+                <TULevelChip level="confirme"/>
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8A93A6', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Boutons</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+                <TUButton size="sm">Primary</TUButton>
+                <TUButton size="sm" variant="dark">Dark</TUButton>
+                <TUButton size="sm" variant="teal">Teal</TUButton>
+                <TUButton size="sm" variant="ghost">Ghost</TUButton>
+                <TUButton size="sm" variant="soft">Soft</TUButton>
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8A93A6', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Avatars</div>
+              <div style={{ marginBottom: 18 }}>
+                <TUAvatarStack names={['Mehdi K','Camille P','Yasmine A','Thomas R']} extra={4} size={32}/>
+              </div>
+
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#8A93A6', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>Type · Plus Jakarta Sans</div>
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: -0.4 }}>Display 28/800</div>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>Title 18/700</div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>Body 14/600</div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#5B6478' }}>Caption 11/600</div>
+              </div>
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── ONBOARDING ── */}
+        <DCSection id="onboarding" title="1 · Onboarding" subtitle="3 slides de présentation après splash">
+          <DCArtboard id="onb1" label="Slide 1 · Découvre" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <ScreenOnboarding slide={0}/>
+            </TUPhone>
+          </DCArtboard>
+          <DCArtboard id="onb2" label="Slide 2 · Réserve" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <ScreenOnboarding slide={1}/>
+            </TUPhone>
+          </DCArtboard>
+          <DCArtboard id="onb3" label="Slide 3 · Équipe" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <ScreenOnboarding slide={2}/>
+            </TUPhone>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── ACCUEIL ── */}
+        <DCSection id="accueil" title="2 · Accueil" subtitle="Feed personnalisé · header navy + carte mini · 3 stats rapides">
+          <DCArtboard id="home" label="Feed principal" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <div style={{ position: 'relative', height: '100%' }}>
+                <ScreenAccueil/>
+                <TUBottomNav active="home"/>
+              </div>
+            </TUPhone>
+          </DCArtboard>
+
+          <DCArtboard id="terrains" label="Carte des terrains" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <div style={{ position: 'relative', height: '100%' }}>
+                <ScreenTerrains/>
+                <TUBottomNav active="terrains"/>
+              </div>
+            </TUPhone>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── ÉVÉNEMENT ── */}
+        <DCSection id="event" title="3 · Détail événement" subtitle="Page de conversion · cover + organisateur + participants + CTA join">
+          <DCArtboard id="event-detail" label="Détail · Basket 5v5" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <ScreenEventDetail event={TUData.events[0]}/>
+            </TUPhone>
+          </DCArtboard>
+          <DCArtboard id="events-list" label="Liste events" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <div style={{ position: 'relative', height: '100%' }}>
+                <ScreenEvents/>
+                <TUBottomNav active="events"/>
+              </div>
+            </TUPhone>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── CRÉER ── */}
+        <DCSection id="create" title="4 · Créer un événement" subtitle="Formulaire 4 étapes · sport → quand → où → détails">
+          <DCArtboard id="create-1" label="Étape 1 · Sport" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <ScreenCreateEvent initialStep={0}/>
+            </TUPhone>
+          </DCArtboard>
+          <DCArtboard id="create-2" label="Étape 2 · Quand" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <ScreenCreateEvent initialStep={1}/>
+            </TUPhone>
+          </DCArtboard>
+          <DCArtboard id="create-3" label="Étape 3 · Où" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <ScreenCreateEvent initialStep={2}/>
+            </TUPhone>
+          </DCArtboard>
+          <DCArtboard id="create-4" label="Étape 4 · Détails" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <ScreenCreateEvent initialStep={3}/>
+            </TUPhone>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── PROFIL ── */}
+        <DCSection id="profile" title="5 · Profil" subtitle="Stats sportives · niveaux par sport · récompenses">
+          <DCArtboard id="profile-main" label="Profil sportif" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <div style={{ position: 'relative', height: '100%' }}>
+                <ScreenProfile/>
+                <TUBottomNav active="profile"/>
+              </div>
+            </TUPhone>
+          </DCArtboard>
+          <DCArtboard id="teams" label="Mes équipes" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <div style={{ position: 'relative', height: '100%' }}>
+                <ScreenTeams/>
+                <TUBottomNav active="teams"/>
+              </div>
+            </TUPhone>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── CHAT ── */}
+        <DCSection id="chat" title="6 · Messagerie équipe" subtitle="Chat temps réel · event épinglé en haut · indicateur de frappe">
+          <DCArtboard id="team-chat" label="Chat · Faucons 11e" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <ScreenChat team={TUData.teams[0]}/>
+            </TUPhone>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ── PROTO ── */}
+        <DCSection id="proto" title="🎮 Prototype interactif" subtitle="Cliquable · navigation entre tous les écrans · double-clic pour focus plein écran">
+          <DCArtboard id="live" label="App complète — clique pour naviguer" width={390} height={844}>
+            <TUPhone width={390} height={844}>
+              <ProtoApp/>
+            </TUPhone>
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+
+      <TweaksPanel title="Tweaks">
+        <TweakSection title="Couleurs">
+          <TweakColor label="Primaire" value={tweaks.primaryColor} onChange={(v) => setTweaks({ primaryColor: v })}/>
+          <TweakColor label="Accent" value={tweaks.accentColor} onChange={(v) => setTweaks({ accentColor: v })}/>
+        </TweakSection>
+        <TweakSection title="Bottom Nav">
+          <TweakRadio label="Style" value={tweaks.navStyle}
+            options={[{value:'label', label:'Icône + label'}, {value:'icon', label:'Icône seule'}]}
+            onChange={(v) => setTweaks({ navStyle: v })}/>
+        </TweakSection>
+        <TweakSection title="Cartes">
+          <TweakRadio label="Densité" value={tweaks.cardDensity}
+            options={[{value:'compact',label:'Compacte'},{value:'standard',label:'Standard'},{value:'featured',label:'Featured'}]}
+            onChange={(v) => setTweaks({ cardDensity: v })}/>
+          <TweakSlider label="Border radius" value={tweaks.cornerRadius} min={6} max={28} step={2}
+            onChange={(v) => setTweaks({ cornerRadius: v })}/>
+        </TweakSection>
+      </TweaksPanel>
+    </>
+  );
+}
+
+// Helper removed — ScreenCreateEvent now accepts initialStep prop directly.
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+// Realistic seed data for TeamUp! mockups
+const TUData = {
+  user: {
+    name: 'Léo Marchand',
+    handle: '@leom',
+    city: 'Paris 11e',
+    avatarSeed: 'Léo Marchand',
+    level: { basket: 'intermediaire', foot: 'confirme', tennis: 'debutant' },
+    stats: { events: 47, victories: 28, teams: 3, hours: 132 },
+  },
+  events: [
+    {
+      id: 'e1', sport: 'basket', title: '5v5 Playground République',
+      date: 'Aujourd\'hui', time: '19:00', duration: '1h30',
+      place: 'Playground Jules Ferry', city: 'Paris 11e',
+      distance: '0.8 km', level: 'intermediaire',
+      participants: 8, max: 10, organizer: 'Mehdi K.',
+      cover: 'basket', host: 'Mehdi K.',
+      hot: true,
+    },
+    {
+      id: 'e2', sport: 'foot', title: 'Foot à 7 — Bercy',
+      date: 'Demain', time: '20:30', duration: '1h',
+      place: 'Stade Léo Lagrange', city: 'Paris 12e',
+      distance: '2.1 km', level: 'tous',
+      participants: 12, max: 14, organizer: 'Camille P.',
+      cover: 'foot',
+    },
+    {
+      id: 'e3', sport: 'tennis', title: 'Double mixte — Tennis Club',
+      date: 'Sam. 26', time: '10:00', duration: '2h',
+      place: 'TC Charenton', city: 'Charenton-le-Pont',
+      distance: '3.4 km', level: 'debutant',
+      participants: 3, max: 4, organizer: 'Sarah B.',
+      cover: 'tennis',
+    },
+    {
+      id: 'e4', sport: 'running', title: 'Run matinal Canal Saint-Martin',
+      date: 'Mer. 30', time: '07:30', duration: '45 min',
+      place: 'Quai de Valmy', city: 'Paris 10e',
+      distance: '1.2 km', level: 'tous',
+      participants: 14, max: 25, organizer: 'Run Crew Paris',
+      cover: 'running',
+    },
+    {
+      id: 'e5', sport: 'padel', title: 'Padel — niveau confirmé',
+      date: 'Ven. 1er', time: '21:00', duration: '1h30',
+      place: 'Padel Horizon', city: 'Vincennes',
+      distance: '4.0 km', level: 'confirme',
+      participants: 3, max: 4, organizer: 'Alex T.',
+      cover: 'padel',
+    },
+  ],
+  teams: [
+    { id: 't1', name: 'Les Faucons 11e', sport: 'basket', members: 9, color: '#FF6B35', unread: 3, lastMsg: 'Mehdi K. : on est combien ce soir ?', when: '14 min' },
+    { id: 't2', name: 'FC Canal', sport: 'foot', members: 14, color: '#2EC4B6', unread: 0, lastMsg: 'Cam : nice game 🔥', when: '2 h' },
+    { id: 't3', name: 'Run Crew Paris', sport: 'running', members: 32, color: '#7B61FF', unread: 12, lastMsg: 'Sarah : qui est partant pour 10k ?', when: 'hier' },
+  ],
+  participants: [
+    { name: 'Mehdi Khelifi', role: 'Organisateur', level: 'confirme' },
+    { name: 'Camille Poirier', role: 'Membre', level: 'intermediaire' },
+    { name: 'Yasmine Atta', role: 'Membre', level: 'intermediaire' },
+    { name: 'Thomas Rive', role: 'Membre', level: 'debutant' },
+    { name: 'Léo Marchand', role: 'Toi', level: 'intermediaire' },
+    { name: 'Noé Garnier', role: 'Membre', level: 'intermediaire' },
+    { name: 'Inès Da Silva', role: 'Membre', level: 'confirme' },
+    { name: 'Hugo Belkacem', role: 'Membre', level: 'intermediaire' },
+  ],
+  messages: [
+    { from: 'Mehdi K.', text: 'Yo la team ! Confirmez votre présence pour ce soir 🏀', t: '17:42', mine: false },
+    { from: 'Camille P.', text: 'Présent 💪', t: '17:43', mine: false },
+    { from: 'Yasmine A.', text: 'Je suis là, je ramène le ballon', t: '17:45', mine: false },
+    { from: 'Léo', text: 'Yes je viens, je sors du taf à 18h30', t: '17:50', mine: true },
+    { from: 'Mehdi K.', text: 'Parfait. RDV au playground Jules Ferry 19h00 sharp', t: '17:51', mine: false },
+    { from: 'Mehdi K.', text: 'Pensez à prendre une bouteille d\'eau, il fait chaud', t: '17:51', mine: false },
+    { from: 'Léo', text: 'Noted 👍', t: '17:53', mine: true },
+  ],
+  terrains: [
+    { id: 'p1', name: 'Playground Jules Ferry', sport: 'basket', free: true, distance: '0.8 km', rating: 4.6, available: true, photo: 1 },
+    { id: 'p2', name: 'Stade Léo Lagrange', sport: 'foot', free: false, price: '12€/h', distance: '2.1 km', rating: 4.4, available: true, photo: 2 },
+    { id: 'p3', name: 'TC Charenton', sport: 'tennis', free: false, price: '18€/h', distance: '3.4 km', rating: 4.7, available: false, photo: 3 },
+    { id: 'p4', name: 'Padel Horizon', sport: 'padel', free: false, price: '28€/h', distance: '4.0 km', rating: 4.8, available: true, photo: 4 },
+  ],
+};
+
+window.TUData = TUData;

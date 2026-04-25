@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand-orange: #FF6B35;
+  --brand-orange-dark: #E5551F;
+  --brand-orange-soft: #FFE6DA;
+  --brand-teal: #2EC4B6;
+  --brand-teal-dark: #1FA89B;
+  --brand-teal-soft: #D6F4F1;
+  --brand-navy: #1A2B4A;
+  --bg: #F6F7FA;
+  --surface: #FFFFFF;
+  --surface-alt: #F1F3F7;
+  --border: #E5E8EE;
+  --border-strong: #D5DAE3;
+  --ink: #1A2B4A;
+  --ink-muted: #5B6478;
+  --ink-soft: #8A93A6;
+  --radius-card: 18px;
+  --radius-button: 14px;
+  --radius-pill: 999px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* PWA safe areas */
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes tu-typing {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.8); }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f1f3f7 25%, #e8eaee 50%, #f1f3f7 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.tap-scale {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.tap-scale:active {
+  transform: scale(0.97);
+}
