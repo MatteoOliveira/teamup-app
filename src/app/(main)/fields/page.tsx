@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Search, Star, MapPin, Clock, Navigation } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Terrain } from "@/lib/supabase";
@@ -74,7 +75,6 @@ export default function FieldsPage() {
   const [activeSport, setActiveSport] = useState("all");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [reserving, setReserving] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
@@ -95,11 +95,6 @@ export default function FieldsPage() {
       || (t.district ?? "").toLowerCase().includes(query.toLowerCase());
     return matchSport && matchQ;
   });
-
-  function handleReserve(id: string) {
-    setReserving(id);
-    setTimeout(() => setReserving(null), 1800);
-  }
 
   return (
     <div
@@ -234,7 +229,6 @@ export default function FieldsPage() {
             ) : (
               filtered.map((terrain) => {
                 const isSelected = selectedId === terrain.id;
-                const isReserving = reserving === terrain.id;
                 return (
                   <div key={terrain.id} onClick={() => setSelectedId(isSelected ? null : terrain.id)}
                     style={{
@@ -295,21 +289,19 @@ export default function FieldsPage() {
                             <p style={{ fontSize: 13, fontWeight: 700, color: "#1A2B4A", marginTop: 1 }}>Réserver un créneau</p>
                           </div>
                         </div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleReserve(terrain.id); }}
-                          disabled={isReserving}
+                        <Link href={`/fields/${terrain.id}`}
+                          onClick={(e) => e.stopPropagation()}
                           className="tap-scale"
                           style={{
-                            width: "100%", height: 44, borderRadius: 12, border: "none",
-                            cursor: "pointer", fontSize: 14, fontWeight: 800,
-                            background: isReserving ? "#D6F4F1" : `linear-gradient(135deg, ${terrain.sportColor}, ${terrain.sportColor}CC)`,
-                            color: isReserving ? "#1FA89B" : "#fff",
-                            boxShadow: !isReserving ? `0 4px 14px -4px ${terrain.sportColor}66` : "none",
-                            transition: "all 0.2s ease", letterSpacing: -0.2,
-                          }}
-                        >
-                          {isReserving ? "✓ Réservé !" : "Réserver ce terrain"}
-                        </button>
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            width: "100%", height: 44, borderRadius: 12, textDecoration: "none",
+                            fontSize: 14, fontWeight: 800,
+                            background: `linear-gradient(135deg, ${terrain.sportColor}, ${terrain.sportColor}CC)`,
+                            color: "#fff",
+                            boxShadow: `0 4px 14px -4px ${terrain.sportColor}66`,
+                          }}>
+                          Réserver ce terrain →
+                        </Link>
                       </div>
                     )}
 
