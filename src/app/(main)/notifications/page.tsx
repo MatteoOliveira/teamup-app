@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, X } from "lucide-react";
 import { supabase, type Notification } from "@/lib/supabase";
 
 /* ─── Type meta ───────────────────────────────────────────── */
 
 const TYPE_META: Record<string, { emoji: string; color: string; bg: string }> = {
-  event_joined: { emoji: "🎉", color: "#FF6B35", bg: "#FFE6DA" },
-  team_joined:  { emoji: "👥", color: "#2EC4B6", bg: "#D6F4F1" },
-  event_invite: { emoji: "📅", color: "#1A2B4A", bg: "#E8EBF0" },
+  event_joined:    { emoji: "🎉", color: "#FF6B35", bg: "#FFE6DA" },
+  team_joined:     { emoji: "👥", color: "#2EC4B6", bg: "#D6F4F1" },
+  event_invite:    { emoji: "📅", color: "#1A2B4A", bg: "#E8EBF0" },
+  profile_request: { emoji: "🔒", color: "#7B61FF", bg: "#EDE9FE" },
 };
 
 function getTypeMeta(type: string) {
@@ -55,29 +56,31 @@ function NotifRow({
   notif,
   onClick,
   isLast,
+  onAccept,
+  onReject,
+  actionDone,
 }: {
   notif: Notification;
   onClick: () => void;
   isLast: boolean;
+  onAccept?: () => void;
+  onReject?: () => void;
+  actionDone?: "accepted" | "rejected" | null;
 }) {
   const meta = getTypeMeta(notif.type);
   const hasLink = !!(notif.data?.event_id || notif.data?.team_id);
   const unread = !notif.read;
+  const isRequest = notif.type === "profile_request";
 
   return (
     <div
-      onClick={onClick}
-      className="flex items-center gap-3 tap-scale"
       style={{
         background: unread ? "#fff" : "#FAFAFA",
         padding: "14px 16px",
-        cursor: hasLink ? "pointer" : "default",
         borderBottom: isLast ? "none" : "1px solid #F1F3F7",
         position: "relative",
-        transition: "background 0.15s",
       }}
     >
-      {/* Unread indicator bar */}
       {unread && (
         <div style={{
           position: "absolute", left: 0, top: 12, bottom: 12,
@@ -85,39 +88,62 @@ function NotifRow({
         }} />
       )}
 
-      {/* Icon */}
-      <div className="flex items-center justify-center flex-shrink-0"
-        style={{ width: 44, height: 44, borderRadius: 14, background: meta.bg, fontSize: 20 }}>
-        {meta.emoji}
-      </div>
+      <div className="flex items-center gap-3" onClick={isRequest ? undefined : onClick}
+        style={{ cursor: hasLink ? "pointer" : "default" }}>
+        <div className="flex items-center justify-center flex-shrink-0"
+          style={{ width: 44, height: 44, borderRadius: 14, background: meta.bg, fontSize: 20 }}>
+          {meta.emoji}
+        </div>
 
-      {/* Content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{
-          fontSize: 14, fontWeight: unread ? 800 : 600,
-          color: unread ? "#1A2B4A" : "#5B6478",
-          lineHeight: 1.3, marginBottom: 3,
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>
-          {notif.title}
-        </p>
-        {notif.body && (
+        <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
-            fontSize: 13, fontWeight: 500, color: "#8A93A6",
-            lineHeight: 1.4, marginBottom: 4,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            fontSize: 14, fontWeight: unread ? 800 : 600,
+            color: unread ? "#1A2B4A" : "#5B6478",
+            lineHeight: 1.3, marginBottom: 3,
           }}>
-            {notif.body}
+            {notif.title}
           </p>
+          {notif.body && (
+            <p style={{
+              fontSize: 13, fontWeight: 500, color: "#8A93A6",
+              lineHeight: 1.4, marginBottom: 4,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {notif.body}
+            </p>
+          )}
+          <p style={{ fontSize: 11, fontWeight: 600, color: meta.color }}>
+            {formatTimeAgo(notif.created_at)}
+          </p>
+        </div>
+
+        {hasLink && !isRequest && (
+          <ChevronRight size={16} color="#D5DAE3" strokeWidth={2.5} style={{ flexShrink: 0 }} />
         )}
-        <p style={{ fontSize: 11, fontWeight: 600, color: meta.color }}>
-          {formatTimeAgo(notif.created_at)}
-        </p>
       </div>
 
-      {/* Chevron */}
-      {hasLink && (
-        <ChevronRight size={16} color="#D5DAE3" strokeWidth={2.5} style={{ flexShrink: 0 }} />
+      {/* Accept / Reject buttons for profile_request */}
+      {isRequest && (
+        <div className="flex gap-2" style={{ marginTop: 10, paddingLeft: 56 }}>
+          {actionDone === "accepted" ? (
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#22C55E" }}>✓ Accès accordé</span>
+          ) : actionDone === "rejected" ? (
+            <span style={{ fontSize: 12, fontWeight: 700, color: "#8A93A6" }}>✗ Refusé</span>
+          ) : (
+            <>
+              <button onClick={onAccept}
+                className="tap-scale flex items-center gap-1"
+                style={{ height: 30, borderRadius: 999, padding: "0 14px", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer", background: "#22C55E", color: "#fff" }}>
+                <Check size={12} strokeWidth={3} /> Accepter
+              </button>
+              <button onClick={onReject}
+                className="tap-scale flex items-center gap-1"
+                style={{ height: 30, borderRadius: 999, padding: "0 14px", fontSize: 12, fontWeight: 700, border: "1.5px solid #E5E8EE", cursor: "pointer", background: "#fff", color: "#5B6478" }}>
+                <X size={12} strokeWidth={2.5} /> Refuser
+              </button>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
@@ -130,11 +156,14 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [actionDone, setActionDone] = useState<Record<string, "accepted" | "rejected">>({});
 
   useEffect(() => {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push("/login"); return; }
+      setCurrentUserId(session.user.id);
 
       const { data } = await supabase
         .from("notifications")
@@ -159,6 +188,21 @@ export default function NotificationsPage() {
     }
     load();
   }, [router]);
+
+  async function handleAccept(notif: Notification) {
+    if (!currentUserId || !notif.data?.requester_id) return;
+    await supabase.from("profile_access").insert({
+      profile_id: currentUserId,
+      viewer_id: notif.data.requester_id,
+    });
+    await supabase.from("notifications").update({ read: true }).eq("id", notif.id);
+    setActionDone((prev) => ({ ...prev, [notif.id]: "accepted" }));
+  }
+
+  async function handleReject(notif: Notification) {
+    await supabase.from("notifications").update({ read: true }).eq("id", notif.id);
+    setActionDone((prev) => ({ ...prev, [notif.id]: "rejected" }));
+  }
 
   function handleNotifClick(notif: Notification) {
     if (notif.type === "event_joined" || notif.type === "event_invite") {
@@ -237,6 +281,9 @@ export default function NotificationsPage() {
                       notif={notif}
                       onClick={() => handleNotifClick(notif)}
                       isLast={i === notifications.length - 1}
+                      onAccept={() => handleAccept(notif)}
+                      onReject={() => handleReject(notif)}
+                      actionDone={actionDone[notif.id] ?? null}
                     />
                   </div>
                 ))}

@@ -114,6 +114,11 @@ export default function SettingsPage() {
   const [showSports,   setShowSports]   = useState(true);
   const [showLocation, setShowLocation] = useState(false);
 
+  /* access list */
+  type AccessEntry = { id: string; viewer_id: string; granted_at: string; viewer: { id: string; full_name: string | null; username: string | null } | null };
+  const [accessList, setAccessList] = useState<AccessEntry[]>([]);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+
   const profileId = profile?.id;
 
   useEffect(() => {
@@ -131,6 +136,7 @@ export default function SettingsPage() {
         setSports(data.sports ?? []);
         setLevel(data.level ?? "beginner");
         setIsPrivate(data.is_private ?? false);
+        if (data.is_private) loadAccessList(session.user.id);
         setNotifEvents(data.notif_events ?? true);
         setNotifMessages(data.notif_messages ?? true);
         setNotifReminder(data.notif_reminder ?? true);
@@ -148,6 +154,23 @@ export default function SettingsPage() {
     await supabase.from("profiles").update({ [field]: value }).eq("id", profileId);
   }
 
+  async function loadAccessList(pid: string) {
+    const { data } = await supabase
+      .from("profile_access")
+      .select("id, viewer_id, granted_at, viewer:profiles!viewer_id(id, full_name, username)")
+      .eq("profile_id", pid)
+      .order("granted_at", { ascending: false });
+    setAccessList((data ?? []) as unknown as AccessEntry[]);
+  }
+
+  async function handleRevokeAccess(entry: AccessEntry) {
+    if (revokingId) return;
+    setRevokingId(entry.id);
+    await supabase.from("profile_access").delete().eq("id", entry.id);
+    setAccessList((prev) => prev.filter((e) => e.id !== entry.id));
+    setRevokingId(null);
+  }
+
   function handleToggle(
     setter: React.Dispatch<React.SetStateAction<boolean>>,
     field: string,
@@ -156,6 +179,9 @@ export default function SettingsPage() {
     const next = !current;
     setter(next);
     autoSave(field, next);
+    if (field === "is_private" && next && profileId) {
+      loadAccessList(profileId);
+    }
   }
 
   function toggleSport(id: string) {
@@ -391,6 +417,57 @@ export default function SettingsPage() {
             </div>
           ))}
         </div>
+
+        {/* ══ ACCÈS AUTORISÉS (visible seulement si profil privé) ══ */}
+        {isPrivate && (
+          <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #E5E8EE", padding: 16, boxShadow: "0 1px 0 rgba(26,43,74,0.04), 0 8px 28px -16px rgba(26,43,74,0.1)" }}>
+            <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
+              <div className="flex items-center gap-2">
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: "#7B61FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 14 }}>👥</span>
+                </div>
+                <p style={{ fontSize: 14, fontWeight: 800, color: "#1A2B4A" }}>Accès autorisés</p>
+              </div>
+              {accessList.length > 0 && (
+                <span style={{ fontSize: 11, fontWeight: 700, background: "#EDE9FE", color: "#7B61FF", borderRadius: 999, padding: "3px 9px" }}>
+                  {accessList.length}
+                </span>
+              )}
+            </div>
+
+            {accessList.length === 0 ? (
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#8A93A6", textAlign: "center", padding: "12px 0" }}>
+                Personne n'a accès à ton profil privé.
+              </p>
+            ) : (
+              <div className="flex flex-col" style={{ gap: 0 }}>
+                {accessList.map((entry, i) => {
+                  const name = entry.viewer?.full_name ?? entry.viewer?.username ?? "Utilisateur";
+                  const initials = name.split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
+                  return (
+                    <div key={entry.id} className="flex items-center gap-3"
+                      style={{ padding: "10px 0", borderBottom: i < accessList.length - 1 ? "1px solid #F1F3F7" : "none" }}>
+                      <div className="flex items-center justify-center flex-shrink-0"
+                        style={{ width: 38, height: 38, borderRadius: 11, background: "linear-gradient(135deg, #7B61FF, #5B41DF)", fontSize: 13, fontWeight: 800, color: "#fff" }}>
+                        {initials}
+                      </div>
+                      <p style={{ flex: 1, fontSize: 14, fontWeight: 700, color: "#1A2B4A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {name}
+                      </p>
+                      <button
+                        onClick={() => handleRevokeAccess(entry)}
+                        disabled={revokingId === entry.id}
+                        className="tap-scale"
+                        style={{ height: 28, borderRadius: 999, padding: "0 12px", fontSize: 11, fontWeight: 700, border: "1.5px solid #FFD5CC", background: "#FFF5F3", color: "#FF6B35", cursor: "pointer", flexShrink: 0, opacity: revokingId === entry.id ? 0.5 : 1 }}>
+                        {revokingId === entry.id ? "…" : "Retirer"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ══ COMPTE ══ */}
         <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #E5E8EE", padding: 16, boxShadow: "0 1px 0 rgba(26,43,74,0.04), 0 8px 28px -16px rgba(26,43,74,0.1)" }}>

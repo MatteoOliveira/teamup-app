@@ -47,6 +47,8 @@ export default function PublicProfilePage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [hasAccess, setHasAccess] = useState(false);
   const [copied, setCopied] = useState(false);
   const [requested, setRequested] = useState(false);
   const [requesting, setRequesting] = useState(false);
@@ -62,16 +64,19 @@ export default function PublicProfilePage() {
         return;
       }
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", profileId)
-        .single();
+      const [{ data: profileData }, { data: myProfile }, { data: accessData }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", profileId).single(),
+        uid ? supabase.from("profiles").select("full_name").eq("id", uid).single() : Promise.resolve({ data: null }),
+        uid ? supabase.from("profile_access").select("id").eq("profile_id", profileId).eq("viewer_id", uid).maybeSingle() : Promise.resolve({ data: null }),
+      ]);
 
       if (!profileData) { router.push("/teams"); return; }
       setProfile(profileData as Profile);
+      setCurrentUserName((myProfile as { full_name: string | null } | null)?.full_name ?? null);
+      setHasAccess(!!accessData);
 
-      if (!profileData.is_private) {
+      const canSeeContent = !profileData.is_private || !!accessData;
+      if (canSeeContent) {
         const today = new Date().toISOString().split("T")[0];
         const { data: eventsData } = await supabase
           .from("events")
@@ -101,9 +106,9 @@ export default function PublicProfilePage() {
     await supabase.from("notifications").insert({
       user_id: profileId,
       type: "profile_request",
-      title: "Demande d'accès au profil",
-      body: "Quelqu'un souhaite voir votre profil.",
-      data: { requester_id: currentUserId },
+      title: `${currentUserName ?? "Quelqu'un"} veut accéder à votre profil`,
+      body: "Acceptez pour lui permettre de voir vos stats et événements.",
+      data: { requester_id: currentUserId, requester_name: currentUserName ?? "" },
       read: false,
     });
     setRequested(true);
@@ -133,7 +138,7 @@ export default function PublicProfilePage() {
 
   if (!profile) return null;
 
-  const isPrivate = profile.is_private;
+  const isPrivate = profile.is_private && !hasAccess;
 
   return (
     <div style={{ background: "#F6F7FA", minHeight: "100vh", fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif', paddingBottom: 40 }}>
