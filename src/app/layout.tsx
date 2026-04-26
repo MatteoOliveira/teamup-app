@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   title: "TeamUp!",
   description: "Trouve des partenaires de sport près de chez toi",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/icon-192.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
