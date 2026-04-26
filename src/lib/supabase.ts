@@ -23,6 +23,12 @@ export type Profile = {
   hours_played: number;
   is_admin: boolean;
   is_private: boolean;
+  notif_events: boolean;
+  notif_messages: boolean;
+  notif_reminder: boolean;
+  notif_team: boolean;
+  show_sports: boolean;
+  show_location: boolean;
   created_at: string;
 };
 

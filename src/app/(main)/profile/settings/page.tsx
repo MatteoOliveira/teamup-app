@@ -103,16 +103,18 @@ export default function SettingsPage() {
   const [sports, setSports]       = useState<string[]>([]);
   const [level, setLevel]         = useState("beginner");
 
-  /* notification prefs (local only) */
-  const [notifEvents, setNotifEvents]   = useState(true);
+  /* notification prefs */
+  const [notifEvents,   setNotifEvents]   = useState(true);
   const [notifMessages, setNotifMessages] = useState(true);
   const [notifReminder, setNotifReminder] = useState(true);
-  const [notifTeam, setNotifTeam]       = useState(false);
+  const [notifTeam,     setNotifTeam]     = useState(false);
 
   /* privacy prefs */
-  const [isPrivate, setIsPrivate]       = useState(false);
-  const [privSports, setPrivSports]     = useState(true);
-  const [privLocation, setPrivLocation] = useState(false);
+  const [isPrivate,    setIsPrivate]    = useState(false);
+  const [showSports,   setShowSports]   = useState(true);
+  const [showLocation, setShowLocation] = useState(false);
+
+  const profileId = profile?.id;
 
   useEffect(() => {
     async function load() {
@@ -129,11 +131,32 @@ export default function SettingsPage() {
         setSports(data.sports ?? []);
         setLevel(data.level ?? "beginner");
         setIsPrivate(data.is_private ?? false);
+        setNotifEvents(data.notif_events ?? true);
+        setNotifMessages(data.notif_messages ?? true);
+        setNotifReminder(data.notif_reminder ?? true);
+        setNotifTeam(data.notif_team ?? false);
+        setShowSports(data.show_sports ?? true);
+        setShowLocation(data.show_location ?? false);
       }
       setLoading(false);
     }
     load();
   }, [router]);
+
+  async function autoSave(field: string, value: boolean) {
+    if (!profileId) return;
+    await supabase.from("profiles").update({ [field]: value }).eq("id", profileId);
+  }
+
+  function handleToggle(
+    setter: React.Dispatch<React.SetStateAction<boolean>>,
+    field: string,
+    current: boolean,
+  ) {
+    const next = !current;
+    setter(next);
+    autoSave(field, next);
+  }
 
   function toggleSport(id: string) {
     setSports((prev) => prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]);
@@ -149,7 +172,6 @@ export default function SettingsPage() {
       location: location || null,
       sports,
       level,
-      is_private: isPrivate,
     }).eq("id", profile.id);
     setSaving(false);
     setSaved(true);
@@ -334,10 +356,10 @@ export default function SettingsPage() {
           <SectionTitle icon={<Bell size={15} color="#fff" strokeWidth={2.5} />} label="Notifications" />
 
           {[
-            { label: "Nouveaux événements près de toi", sub: "Alertes quotidiennes", value: notifEvents, onChange: setNotifEvents },
-            { label: "Messages d'équipe", sub: "Nouveaux messages dans tes chats", value: notifMessages, onChange: setNotifMessages },
-            { label: "Rappel avant événement", sub: "1h avant le début", value: notifReminder, onChange: setNotifReminder },
-            { label: "Demandes d'équipe", sub: "Quelqu'un veut rejoindre ton équipe", value: notifTeam, onChange: setNotifTeam },
+            { label: "Nouveaux événements près de toi", sub: "Alertes quotidiennes",                    value: notifEvents,   setter: setNotifEvents,   field: "notif_events"   },
+            { label: "Messages d'équipe",               sub: "Nouveaux messages dans tes chats",        value: notifMessages, setter: setNotifMessages, field: "notif_messages" },
+            { label: "Rappel avant événement",          sub: "1h avant le début",                       value: notifReminder, setter: setNotifReminder, field: "notif_reminder" },
+            { label: "Demandes d'équipe",               sub: "Quelqu'un veut rejoindre ton équipe",     value: notifTeam,     setter: setNotifTeam,     field: "notif_team"     },
           ].map((item, i, arr) => (
             <div key={i} className="flex items-center justify-between"
               style={{ paddingBottom: i < arr.length - 1 ? 14 : 0, marginBottom: i < arr.length - 1 ? 14 : 0, borderBottom: i < arr.length - 1 ? "1px solid #F1F3F7" : "none" }}>
@@ -345,7 +367,7 @@ export default function SettingsPage() {
                 <p style={{ fontSize: 14, fontWeight: 700, color: "#1A2B4A" }}>{item.label}</p>
                 <p style={{ fontSize: 12, fontWeight: 500, color: "#8A93A6", marginTop: 2 }}>{item.sub}</p>
               </div>
-              <Toggle value={item.value} onChange={item.onChange} />
+              <Toggle value={item.value} onChange={() => handleToggle(item.setter, item.field, item.value)} />
             </div>
           ))}
         </div>
@@ -355,9 +377,9 @@ export default function SettingsPage() {
           <SectionTitle icon={<Lock size={15} color="#fff" strokeWidth={2.5} />} label="Confidentialité" />
 
           {[
-            { label: "Profil privé", sub: "Cache tes stats et événements aux autres", value: isPrivate, onChange: setIsPrivate },
-            { label: "Afficher mes sports", sub: "Dans la recherche et ton profil", value: privSports, onChange: setPrivSports },
-            { label: "Afficher ma localisation", sub: "Ville affichée sur ton profil", value: privLocation, onChange: setPrivLocation },
+            { label: "Profil privé",            sub: "Cache tes stats et événements aux autres",  value: isPrivate,    setter: setIsPrivate,    field: "is_private"    },
+            { label: "Afficher mes sports",     sub: "Dans la recherche et ton profil",            value: showSports,   setter: setShowSports,   field: "show_sports"   },
+            { label: "Afficher ma localisation",sub: "Ville affichée sur ton profil",              value: showLocation, setter: setShowLocation, field: "show_location" },
           ].map((item, i, arr) => (
             <div key={i} className="flex items-center justify-between"
               style={{ paddingBottom: i < arr.length - 1 ? 14 : 0, marginBottom: i < arr.length - 1 ? 14 : 0, borderBottom: i < arr.length - 1 ? "1px solid #F1F3F7" : "none" }}>
@@ -365,7 +387,7 @@ export default function SettingsPage() {
                 <p style={{ fontSize: 14, fontWeight: 700, color: "#1A2B4A" }}>{item.label}</p>
                 <p style={{ fontSize: 12, fontWeight: 500, color: "#8A93A6", marginTop: 2 }}>{item.sub}</p>
               </div>
-              <Toggle value={item.value} onChange={item.onChange} />
+              <Toggle value={item.value} onChange={() => handleToggle(item.setter, item.field, item.value)} />
             </div>
           ))}
         </div>
