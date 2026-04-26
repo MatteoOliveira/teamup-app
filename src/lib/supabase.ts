@@ -44,6 +44,7 @@ export type Event = {
   id: string;
   organizer_id: string;
   terrain_id: string | null;
+  team_id: string | null;
   title: string;
   sport: string;
   level: "all" | "beginner" | "intermediate" | "advanced";
@@ -101,6 +102,8 @@ export type Message = {
   team_id: string;
   sender_id: string;
   content: string;
+  message_type: "text" | "event_invite";
+  event_id: string | null;
   created_at: string;
   sender?: Profile;
 };

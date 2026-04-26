@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ChevronLeft, MoreHorizontal, SendHorizonal, Plus, Users, Lock } from "lucide-react";
+import Link from "next/link";
+import { ChevronLeft, MoreHorizontal, SendHorizonal, Plus, Users, Lock, CalendarDays, MapPin } from "lucide-react";
 import { supabase, type Message } from "@/lib/supabase";
 import { getInitials, SPORT_META } from "@/lib/utils";
 
@@ -72,6 +73,70 @@ function SentBubble({ msg }: { msg: Message }) {
       <p style={{ fontSize: 10, fontWeight: 600, color: "#8A93A6", marginTop: 3 }}>
         {formatMsgTime(msg.created_at)}
       </p>
+    </div>
+  );
+}
+
+type EventCardData = {
+  title: string;
+  sport: string;
+  date: string;
+  time: string;
+  duration: number;
+  terrain: string | null;
+  eventId: string;
+};
+
+function EventInviteCard({ msg }: { msg: Message }) {
+  let data: EventCardData | null = null;
+  try { data = JSON.parse(msg.content) as EventCardData; } catch { /* ignore */ }
+  if (!data) return null;
+
+  const sport = SPORT_META[data.sport] ?? { emoji: "🏟️", label: data.sport, color: "#FF6B35" };
+  const dateLabel = new Date(`${data.date}T00:00:00`).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }).replace(/^\w/, c => c.toUpperCase());
+  const durationLabel = data.duration < 60 ? `${data.duration}min` : `${Math.floor(data.duration / 60)}h${data.duration % 60 > 0 ? (data.duration % 60).toString().padStart(2, "0") : ""}`;
+
+  return (
+    <div style={{ marginBottom: 12, maxWidth: "85%" }}>
+      <p style={{ fontSize: 11, fontWeight: 600, color: "#8A93A6", marginBottom: 4, paddingLeft: 2 }}>
+        {msg.sender?.full_name ?? "Membre"} · {formatMsgTime(msg.created_at)}
+      </p>
+      <div style={{ background: "#fff", border: "1.5px solid #E5E8EE", borderRadius: 16, overflow: "hidden", boxShadow: "0 2px 12px rgba(26,43,74,0.08)" }}>
+        {/* Header gradient */}
+        <div style={{ background: `linear-gradient(135deg, ${sport.color}, ${sport.color}cc)`, padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 26 }}>{sport.emoji}</span>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.75)", textTransform: "uppercase", letterSpacing: 0.5 }}>Nouvel événement</p>
+            <p style={{ fontSize: 15, fontWeight: 800, color: "#fff", letterSpacing: -0.2, lineHeight: 1.2 }}>{data.title}</p>
+          </div>
+        </div>
+        {/* Details */}
+        <div style={{ padding: "10px 14px", display: "flex", flexDirection: "column", gap: 5 }}>
+          <div className="flex items-center gap-2">
+            <CalendarDays size={13} color="#8A93A6" strokeWidth={2} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#5B6478" }}>{dateLabel} à {data.time} · {durationLabel}</span>
+          </div>
+          {data.terrain && (
+            <div className="flex items-center gap-2">
+              <MapPin size={13} color="#8A93A6" strokeWidth={2} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: "#5B6478" }}>{data.terrain}</span>
+            </div>
+          )}
+        </div>
+        {/* CTA */}
+        <div style={{ padding: "0 14px 12px" }}>
+          <Link href={`/events/${data.eventId}`}
+            style={{
+              height: 38, borderRadius: 10,
+              background: sport.color, textDecoration: "none",
+              color: "#fff", fontSize: 13, fontWeight: 700,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `0 4px 12px ${sport.color}44`,
+            }}>
+            Voir et rejoindre →
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
@@ -351,6 +416,9 @@ export default function TeamChatPage() {
         )}
 
         {messages.map((msg, i) => {
+          if (msg.message_type === "event_invite") {
+            return <EventInviteCard key={msg.id} msg={msg} />;
+          }
           const isMine = msg.sender_id === currentUserId;
           const showName = !isMine && (i === 0 || messages[i - 1].sender_id !== msg.sender_id);
           return isMine

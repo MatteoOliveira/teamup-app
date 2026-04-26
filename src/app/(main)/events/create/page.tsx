@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Search, Check, Navigation } from "lucide-react";
+import { ChevronLeft, Search, Check, Navigation, Copy, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import type { Terrain } from "@/lib/supabase";
+import type { Terrain, Team } from "@/lib/supabase";
 import { SPORT_META, formatDuration } from "@/lib/utils";
 
 /* ─── Static data ─────────────────────────────────────────────── */
@@ -33,9 +33,9 @@ const TIMES = [
 const DURATION_SHORTCUTS = [30, 60, 90, 120];
 
 const VISIBILITY = [
-  { id: "public",  emoji: "🌍", label: "Public",       desc: "Tout le monde peut rejoindre" },
-  { id: "team",    emoji: "👥", label: "Équipe",       desc: "Membres de mon équipe uniquement" },
-  { id: "private", emoji: "🔒", label: "Sur invitation", desc: "Invitation uniquement" },
+  { id: "public",  emoji: "🌍", label: "Public",         desc: "Tout le monde peut rejoindre" },
+  { id: "team",    emoji: "👥", label: "Équipe",         desc: "Membres de mon équipe uniquement" },
+  { id: "private", emoji: "🔒", label: "Sur invitation", desc: "Lien d'invitation uniquement" },
 ];
 
 /* ─── Generate 7 days from today ─────────────────────────────── */
@@ -86,6 +86,60 @@ function MiniMap() {
   );
 }
 
+/* ─── Invite Modal ────────────────────────────────────────────── */
+function InviteModal({ eventId, onClose }: { eventId: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const link = typeof window !== "undefined" ? `${window.location.origin}/events/${eventId}` : "";
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.55)" }}>
+      <div style={{ background: "#fff", borderRadius: "24px 24px 0 0", padding: "8px 20px 44px", width: "100%", maxWidth: 480 }}>
+        <div style={{ width: 40, height: 4, borderRadius: 999, background: "#E5E8EE", margin: "12px auto 22px" }} />
+        <p style={{ fontSize: 20, fontWeight: 800, color: "#1A2B4A", marginBottom: 6 }}>🔒 Événement sur invitation</p>
+        <p style={{ fontSize: 14, fontWeight: 500, color: "#5B6478", lineHeight: 1.5, marginBottom: 20 }}>
+          Seules les personnes ayant ce lien peuvent rejoindre l&apos;événement. Partage-le avec qui tu veux !
+        </p>
+
+        {/* Link display */}
+        <div style={{ background: "#F6F7FA", borderRadius: 12, padding: "12px 14px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "#1A2B4A", wordBreak: "break-all", lineHeight: 1.4 }}>
+            {link}
+          </span>
+        </div>
+
+        <button onClick={handleCopy}
+          style={{
+            width: "100%", height: 52, borderRadius: 14, border: "none",
+            background: copied ? "#22C55E" : "#1A2B4A",
+            color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer",
+            marginBottom: 10, transition: "background 0.2s ease",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          }}>
+          <Copy size={18} />
+          {copied ? "Lien copié !" : "Copier le lien"}
+        </button>
+
+        <button onClick={onClose}
+          style={{
+            width: "100%", height: 44, borderRadius: 12,
+            background: "transparent", border: "1.5px solid #E5E8EE",
+            color: "#1A2B4A", fontSize: 14, fontWeight: 700, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          }}>
+          <ExternalLink size={15} />
+          Voir l&apos;événement
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main ────────────────────────────────────────────────────── */
 export default function CreateEventPage() {
   const router = useRouter();
@@ -101,8 +155,12 @@ export default function CreateEventPage() {
   const [eventName, setEventName]               = useState("");
   const [maxPlayers, setMaxPlayers]             = useState(10);
   const [visibility, setVisibility]             = useState("public");
+  const [selectedTeam, setSelectedTeam]         = useState("");
   const [dbTerrains, setDbTerrains]             = useState<Terrain[]>([]);
+  const [userTeams, setUserTeams]               = useState<Team[]>([]);
+  const [createdEventId, setCreatedEventId]     = useState<string | null>(null);
 
+  /* Fetch terrains on step 3 */
   useEffect(() => {
     if (step !== 2) return;
     supabase
@@ -112,11 +170,27 @@ export default function CreateEventPage() {
       .then(({ data }) => setDbTerrains((data ?? []) as Terrain[]));
   }, [step]);
 
+  /* Fetch user's teams on step 4 */
+  useEffect(() => {
+    if (step !== 3) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) return;
+      supabase
+        .from("team_members")
+        .select("team:teams!team_id(*)")
+        .eq("user_id", session.user.id)
+        .then(({ data }) => {
+          const teams = (data ?? []).map((d) => (d as unknown as { team: Team }).team).filter(Boolean);
+          setUserTeams(teams);
+        });
+    });
+  }, [step]);
+
   const canContinue = [
     selectedSport !== "",
     selectedTime !== "",
     selectedTerrain !== "",
-    eventName.trim() !== "",
+    eventName.trim() !== "" && (visibility !== "team" || selectedTeam !== ""),
   ][step];
 
   const go = (next: number) => {
@@ -127,6 +201,7 @@ export default function CreateEventPage() {
   const handleNext = async () => {
     if (step < 3) { go(step + 1); return; }
     setPublishing(true);
+
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.push("/login"); return; }
 
@@ -139,22 +214,68 @@ export default function CreateEventPage() {
     };
 
     const [hh, mm] = selectedTime.split(":");
-    const { error } = await supabase.from("events").insert({
-      organizer_id: session.user.id,
-      terrain_id: selectedTerrain || null,
-      title: eventName,
-      sport: selectedSport,
-      level: levelMap[selectedLevel] ?? "all",
-      event_date: selectedDate,
-      start_time: `${hh}:${mm}:00`,
-      duration_min: duration,
-      max_players: maxPlayers,
-      visibility: visMap[visibility] ?? "public",
-      location_text: dbTerrains.find((t) => t.id === selectedTerrain)?.address ?? null,
+    const terrain = dbTerrains.find((t) => t.id === selectedTerrain);
+
+    const { data: newEvent, error } = await supabase
+      .from("events")
+      .insert({
+        organizer_id: session.user.id,
+        terrain_id: selectedTerrain || null,
+        team_id: visibility === "team" ? selectedTeam || null : null,
+        title: eventName,
+        sport: selectedSport,
+        level: levelMap[selectedLevel] ?? "all",
+        event_date: selectedDate,
+        start_time: `${hh}:${mm}:00`,
+        duration_min: duration,
+        max_players: maxPlayers,
+        visibility: visMap[visibility] ?? "public",
+        location_text: terrain?.address ?? null,
+      })
+      .select()
+      .single();
+
+    if (error || !newEvent) {
+      setPublishing(false);
+      return;
+    }
+
+    /* Auto-join: creator is a participant */
+    await supabase.from("event_participants").insert({
+      event_id: newEvent.id,
+      user_id: session.user.id,
+      status: "confirmed",
     });
 
+    /* Team event: send an event-invite card to the team chat */
+    if (visibility === "team" && selectedTeam) {
+      const cardPayload = JSON.stringify({
+        title: eventName,
+        sport: selectedSport,
+        date: selectedDate,
+        time: selectedTime,
+        duration,
+        terrain: terrain?.name ?? null,
+        eventId: newEvent.id,
+      });
+      await supabase.from("messages").insert({
+        team_id: selectedTeam,
+        sender_id: session.user.id,
+        content: cardPayload,
+        message_type: "event_invite",
+        event_id: newEvent.id,
+      });
+    }
+
     setPublishing(false);
-    if (!error) router.push("/events");
+
+    /* Invite event: show share modal before redirecting */
+    if (visibility === "private") {
+      setCreatedEventId(newEvent.id);
+      return;
+    }
+
+    router.push("/events");
   };
 
   const handleBack = () => step === 0 ? router.back() : go(step - 1);
@@ -170,6 +291,14 @@ export default function CreateEventPage() {
         @keyframes heroSpin  { from { transform: rotate(-20deg) scale(0.7); opacity: 0 } to { transform: rotate(0deg) scale(1); opacity: 1 } }
         @keyframes heroFadeIn{ from { opacity: 0; transform: translateY(6px) }           to { opacity: 1; transform: translateY(0) } }
       `}</style>
+
+      {/* ── Invite link modal (shown after creating invite event) ── */}
+      {createdEventId && (
+        <InviteModal
+          eventId={createdEventId}
+          onClose={() => router.push(`/events/${createdEventId}`)}
+        />
+      )}
 
       {/* ── STICKY HEADER ── */}
       <div className="sticky top-0 z-40" style={{ background: "#fff", borderBottom: "1px solid #F1F3F7" }}>
@@ -208,7 +337,7 @@ export default function CreateEventPage() {
       <div className="flex-1 overflow-y-auto" style={{ paddingBottom: 160 }}>
         <div style={{ opacity: animIn ? 1 : 0, transform: animIn ? "translateY(0)" : "translateY(8px)", transition: "opacity 0.2s ease, transform 0.2s ease" }}>
 
-          {/* Hero banner — shared across all steps */}
+          {/* Hero banner */}
           <div className="flex items-center justify-between overflow-hidden"
             style={{ height: 80, background: grad, padding: "0 20px", transition: "background 0.3s ease" }}>
             <p style={{ fontSize: 17, fontWeight: 800, color: "#fff", letterSpacing: -0.3, flex: 1, lineHeight: 1.3, animation: "heroFadeIn 0.3s ease" }}>
@@ -226,7 +355,6 @@ export default function CreateEventPage() {
           {/* ═══════ STEP 1 — Sport & Niveau ═══════ */}
           {step === 0 && (
             <div style={{ paddingTop: 16, paddingBottom: 8 }}>
-              {/* Sport grid — 3 cols */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, margin: "0 16px" }}>
                 {SPORTS.map(sport => {
                   const active = selectedSport === sport.id;
@@ -238,8 +366,7 @@ export default function CreateEventPage() {
                         border: active ? "none" : "1.5px solid #E5E8EE",
                         background: active ? sport.color : "#fff",
                         boxShadow: active ? `0 4px 16px ${sport.color}55` : "none",
-                        cursor: "pointer",
-                        transition: "all 0.18s ease",
+                        cursor: "pointer", transition: "all 0.18s ease",
                       }}>
                       <span style={{ fontSize: 28 }}>{sport.emoji}</span>
                       <span style={{ fontSize: 12, fontWeight: 700, color: active ? "#fff" : "#1A2B4A" }}>{sport.label}</span>
@@ -248,7 +375,6 @@ export default function CreateEventPage() {
                 })}
               </div>
 
-              {/* Level — horizontal cards */}
               <p style={{ fontSize: 16, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.2, margin: "20px 16px 10px" }}>
                 Niveau requis
               </p>
@@ -261,9 +387,7 @@ export default function CreateEventPage() {
                       style={{
                         height: 52, borderRadius: 12, border: "none",
                         background: active ? lvl.color : "#F1F3F7",
-                        cursor: "pointer",
-                        transition: "all 0.18s ease",
-                        padding: "4px 2px",
+                        cursor: "pointer", transition: "all 0.18s ease", padding: "4px 2px",
                       }}>
                       <div style={{ width: 6, height: 6, borderRadius: "50%", background: active ? "#fff" : lvl.color, flexShrink: 0 }} />
                       <span style={{ fontSize: 10, fontWeight: 700, color: active ? "#fff" : "#1A2B4A", textAlign: "center", lineHeight: 1.2 }}>{lvl.label}</span>
@@ -277,12 +401,10 @@ export default function CreateEventPage() {
           {/* ═══════ STEP 2 — Date & Heure ═══════ */}
           {step === 1 && (
             <div style={{ paddingTop: 16, paddingBottom: 8 }}>
-              {/* Month header */}
               <p style={{ fontSize: 14, fontWeight: 600, color: "#1A2B4A", margin: "0 16px 8px" }}>
                 {capFirst(monthLabel)}
               </p>
 
-              {/* 7-day scrollable strip */}
               <div className="flex gap-2" style={{ overflowX: "auto", scrollbarWidth: "none", padding: "0 16px 4px" }}>
                 {DAYS.map(d => {
                   const active = selectedDate === d.dateStr;
@@ -309,7 +431,6 @@ export default function CreateEventPage() {
                 })}
               </div>
 
-              {/* Time grid — 4 cols */}
               <p style={{ fontSize: 16, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.2, margin: "20px 16px 10px" }}>
                 Heure de début
               </p>
@@ -331,7 +452,6 @@ export default function CreateEventPage() {
                 })}
               </div>
 
-              {/* Duration card */}
               <p style={{ fontSize: 16, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.2, margin: "20px 16px 10px" }}>
                 Durée
               </p>
@@ -341,7 +461,6 @@ export default function CreateEventPage() {
                   <span style={{ fontSize: 18, fontWeight: 800, color: "#2EC4B6", letterSpacing: -0.5 }}>{formatDuration(duration)}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: "#8A93A6" }}>3h</span>
                 </div>
-                {/* Slider */}
                 <div className="relative" style={{ height: 24, display: "flex", alignItems: "center", marginBottom: 14 }}>
                   <div className="absolute" style={{ left: 0, right: 0, height: 4, borderRadius: 999, background: "#E5E8EE" }} />
                   <div className="absolute" style={{ left: 0, width: `${((duration - 30) / 150) * 100}%`, height: 4, borderRadius: 999, background: "#2EC4B6", transition: "width 0.04s" }} />
@@ -350,7 +469,6 @@ export default function CreateEventPage() {
                   <div className="absolute pointer-events-none"
                     style={{ left: `calc(${((duration - 30) / 150) * 100}% - 10px)`, width: 20, height: 20, borderRadius: "50%", background: "#2EC4B6", border: "3px solid #fff", boxShadow: "0 2px 6px rgba(46,196,182,0.4)", zIndex: 1, transition: "left 0.04s" }} />
                 </div>
-                {/* Shortcuts */}
                 <div className="flex gap-2">
                   {DURATION_SHORTCUTS.map(val => {
                     const active = duration === val;
@@ -375,7 +493,6 @@ export default function CreateEventPage() {
           {/* ═══════ STEP 3 — Lieu ═══════ */}
           {step === 2 && (
             <div style={{ paddingTop: 16, paddingBottom: 8 }}>
-              {/* Search bar with Localiser pill */}
               <div className="flex items-center gap-2"
                 style={{ height: 50, background: "#fff", borderRadius: 14, border: "1.5px solid #E5E8EE", padding: "0 14px", margin: "0 16px" }}>
                 <Search size={16} color="#8A93A6" strokeWidth={2} />
@@ -388,12 +505,10 @@ export default function CreateEventPage() {
                 </button>
               </div>
 
-              {/* Mini map */}
               <div style={{ margin: "12px 16px 0" }}>
                 <MiniMap />
               </div>
 
-              {/* Terrain list */}
               <div className="flex items-center gap-2" style={{ margin: "20px 16px 10px" }}>
                 <p style={{ fontSize: 16, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.2 }}>
                   Suggestions près de toi
@@ -426,7 +541,6 @@ export default function CreateEventPage() {
                           display: "flex", alignItems: "center", gap: 12,
                         }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          {/* Row 1: emoji + name + price badge */}
                           <div className="flex items-center gap-2" style={{ marginBottom: 5 }}>
                             <span style={{ fontSize: 22, flexShrink: 0 }}>{sportMeta?.emoji ?? "🏟️"}</span>
                             <span style={{ fontSize: 15, fontWeight: 800, color: "#1A2B4A", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -436,7 +550,6 @@ export default function CreateEventPage() {
                               {priceLabel}
                             </div>
                           </div>
-                          {/* Row 2: location + rating */}
                           <div className="flex items-center justify-between">
                             <span style={{ fontSize: 12, fontWeight: 600, color: "#8A93A6" }}>
                               📍 {t.district ?? "Paris"}{t.district ? " · ~1 km" : ""}
@@ -446,7 +559,6 @@ export default function CreateEventPage() {
                             )}
                           </div>
                         </div>
-                        {/* Radio indicator */}
                         <div className="flex items-center justify-center flex-shrink-0"
                           style={{ width: 22, height: 22, borderRadius: "50%", background: active ? "#1A2B4A" : "transparent", border: active ? "none" : "2px solid #D5DAE3", transition: "all 0.15s ease" }}>
                           {active && <Check size={13} color="#fff" strokeWidth={3} />}
@@ -462,7 +574,7 @@ export default function CreateEventPage() {
           {/* ═══════ STEP 4 — Finaliser ═══════ */}
           {step === 3 && (
             <div style={{ paddingTop: 16, paddingBottom: 8 }}>
-              {/* Summary recap card */}
+              {/* Summary recap */}
               <div style={{ background: "#1A2B4A", borderRadius: 16, padding: "14px 16px", margin: "0 16px" }}>
                 <div className="flex items-center gap-2" style={{ marginBottom: 8 }}>
                   <span style={{ fontSize: 20 }}>{SPORT_META[selectedSport]?.emoji ?? "🏟️"}</span>
@@ -487,7 +599,7 @@ export default function CreateEventPage() {
 
               {/* Event name */}
               <p style={{ fontSize: 14, fontWeight: 700, color: "#1A2B4A", margin: "20px 16px 8px" }}>
-                Nom de l'événement
+                Nom de l&apos;événement
               </p>
               <div style={{ margin: "0 16px" }}>
                 <input type="text" value={eventName} onChange={e => setEventName(e.target.value)}
@@ -501,12 +613,9 @@ export default function CreateEventPage() {
                   }}
                   onFocus={e => (e.target.style.borderColor = "#22C55E")}
                   onBlur={e => (e.target.style.borderColor = "#E5E8EE")} />
-                <p style={{ fontSize: 12, fontWeight: 500, color: "#8A93A6", marginTop: 6 }}>
-                  💡 Ex: Basket 3vs3 Buttes Ch.
-                </p>
               </div>
 
-              {/* Max players stepper */}
+              {/* Max players */}
               <p style={{ fontSize: 14, fontWeight: 700, color: "#1A2B4A", margin: "20px 16px 10px" }}>
                 Participants max
               </p>
@@ -525,7 +634,6 @@ export default function CreateEventPage() {
                     +
                   </button>
                 </div>
-                {/* Slot visualizer */}
                 <div className="flex gap-1 flex-wrap">
                   {Array.from({ length: Math.min(maxPlayers, 24) }, (_, i) => (
                     <div key={i} style={{ width: 10, height: 10, borderRadius: "50%", background: `hsl(${142 - i * 4}, 60%, ${50 + i * 0.8}%)`, opacity: 0.75 }} />
@@ -544,13 +652,12 @@ export default function CreateEventPage() {
                 {VISIBILITY.map(v => {
                   const active = visibility === v.id;
                   return (
-                    <button key={v.id} onClick={() => setVisibility(v.id)} className="flex items-center justify-between tap-scale"
+                    <button key={v.id} onClick={() => { setVisibility(v.id); setSelectedTeam(""); }} className="flex items-center justify-between tap-scale"
                       style={{
                         background: active ? "rgba(34,197,94,0.06)" : "#fff",
                         borderRadius: 14, padding: "14px 16px",
                         border: `1.5px solid ${active ? "#22C55E" : "#E5E8EE"}`,
-                        cursor: "pointer", textAlign: "left",
-                        transition: "all 0.15s ease",
+                        cursor: "pointer", textAlign: "left", transition: "all 0.15s ease",
                       }}>
                       <div className="flex items-center gap-3">
                         <span style={{ fontSize: 20 }}>{v.emoji}</span>
@@ -567,6 +674,56 @@ export default function CreateEventPage() {
                   );
                 })}
               </div>
+
+              {/* Team selector — shown only when visibility === "team" */}
+              {visibility === "team" && (
+                <>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#1A2B4A", margin: "20px 16px 10px" }}>
+                    Équipe concernée
+                  </p>
+                  {userTeams.length === 0 ? (
+                    <div style={{ margin: "0 16px", padding: "16px", background: "#fff", borderRadius: 14, border: "1.5px solid #E5E8EE", textAlign: "center" }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#8A93A6" }}>Aucune équipe trouvée.</p>
+                      <p style={{ fontSize: 12, fontWeight: 500, color: "#8A93A6", marginTop: 4 }}>Rejoins ou crée une équipe d&apos;abord.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col" style={{ gap: 8, margin: "0 16px" }}>
+                      {userTeams.map(team => {
+                        const active = selectedTeam === team.id;
+                        return (
+                          <button key={team.id} onClick={() => setSelectedTeam(team.id)}
+                            className="flex items-center tap-scale"
+                            style={{
+                              background: active ? "rgba(255,107,53,0.06)" : "#fff",
+                              borderRadius: 14, padding: "12px 16px", gap: 12,
+                              border: `1.5px solid ${active ? "#FF6B35" : "#E5E8EE"}`,
+                              cursor: "pointer", textAlign: "left", transition: "all 0.15s ease",
+                            }}>
+                            <span style={{ fontSize: 24 }}>{SPORT_META[team.sport]?.emoji ?? "👥"}</span>
+                            <div style={{ flex: 1 }}>
+                              <p style={{ fontSize: 14, fontWeight: 700, color: "#1A2B4A" }}>{team.name}</p>
+                              <p style={{ fontSize: 12, fontWeight: 500, color: "#8A93A6" }}>{team.members_count} membres</p>
+                            </div>
+                            <div className="flex items-center justify-center flex-shrink-0"
+                              style={{ width: 22, height: 22, borderRadius: "50%", background: active ? "#FF6B35" : "transparent", border: active ? "none" : "2px solid #D5DAE3", transition: "all 0.15s ease" }}>
+                              {active && <Check size={13} color="#fff" strokeWidth={3} />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Invite info banner */}
+              {visibility === "private" && (
+                <div style={{ margin: "16px 16px 0", background: "rgba(26,43,74,0.05)", borderRadius: 12, padding: "12px 14px", border: "1px solid rgba(26,43,74,0.1)" }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#1A2B4A", lineHeight: 1.4 }}>
+                    🔒 Un lien d&apos;invitation sera généré après la publication. Tu pourras le partager avec n&apos;importe qui.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -589,8 +746,7 @@ export default function CreateEventPage() {
             color: canContinue ? "#fff" : "#8A93A6",
             boxShadow: canContinue ? `0 6px 18px -6px ${accent}80` : "none",
             cursor: canContinue ? "pointer" : "not-allowed",
-            transition: "all 0.25s ease",
-            letterSpacing: -0.2,
+            transition: "all 0.25s ease", letterSpacing: -0.2,
           }}>
           {publishing ? "Publication…" : step === 3 ? "Publier l'événement 🎉" : "Continuer →"}
         </button>

@@ -552,3 +552,32 @@ Page de gestion des équipes dans l'espace admin :
 - Bouton "Publier" en vert avec emoji 🎉
 
 **TypeScript : 0 erreur après redesign**
+
+## 2026-04-25 — Correction RLS équipes + Realtime
+
+### Problèmes identifiés
+- **Bug RLS teams** : la policy `"Public teams visible to all"` ne permettait pas aux membres de voir les équipes privées où ils étaient membres (non propriétaire). Résultat : la section "Mes équipes" apparaissait vide pour les équipes privées.
+- **Realtime messages** : la table `messages` n'était pas dans la publication `supabase_realtime`, empêchant le chat temps-réel de recevoir les nouveaux messages.
+
+### Correction
+
+#### `supabase/migrations/005_fix_teams_rls.sql`
+- Remplace la policy `"Public teams visible to all"` par `"Teams visible to members and public"` :
+  - `is_public = TRUE` → visible par tous
+  - `owner_id = auth.uid()` → visible par le propriétaire
+  - `EXISTS (team_members WHERE team_id = teams.id AND user_id = auth.uid())` → visible par tous les membres (y compris équipes privées)
+- `ALTER PUBLICATION supabase_realtime ADD TABLE public.messages` → active le Realtime sur la table messages
+
+**À appliquer dans Supabase SQL Editor**
+
+## 2026-04-26 — Correction RLS récursion infinie messages (500)
+
+### Problème
+- Erreur `POST /rest/v1/messages 500 Internal Server Error` à l'envoi de message dans le chat d'équipe
+- Cause : récursion infinie RLS — la policy `team_members SELECT` contenait une sous-requête auto-référente, et la policy `messages INSERT` appelait `team_members`, créant une boucle infinie
+
+### Correction — `supabase/migrations/007_fix_messages_rls.sql`
+- Nouvelle fonction `check_team_is_public(p_team_id)` SECURITY DEFINER (contourne RLS pour lire `teams.is_public`)
+- Policy `team_members SELECT` simplifiée : `user_id = auth.uid() OR check_team_is_public(team_id)` (plus de sous-requête auto-référente)
+- Policies `messages SELECT` et `messages INSERT` recrées proprement avec `check_team_membership()` (déjà SECURITY DEFINER depuis migration 006)
+- **Appliqué via Supabase SQL Editor**

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Share2, Heart, MessageSquare } from "lucide-react";
+import { ChevronLeft, Share2, Heart, MessageSquare, Copy, Check as CheckIcon } from "lucide-react";
 import { supabase, type Event, type EventParticipant } from "@/lib/supabase";
 
 const SPORT_META: Record<string, { emoji: string; label: string; gradient: string; color: string }> = {
@@ -101,6 +101,7 @@ export default function EventDetailPage() {
   const [joined, setJoined] = useState(false);
   const [joining, setJoining] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -212,8 +213,16 @@ export default function EventDetailPage() {
             <ChevronLeft size={20} color="white" strokeWidth={2.5} />
           </button>
           <div className="flex items-center gap-2">
-            <button className="flex items-center justify-center tap-scale" style={{ width: 40, height: 40, borderRadius: 14, background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.25)" }}>
-              <Share2 size={18} color="white" strokeWidth={2} />
+            <button
+              onClick={async () => {
+                const link = `${window.location.origin}/events/${eventId}`;
+                await navigator.clipboard.writeText(link);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2500);
+              }}
+              className="flex items-center justify-center tap-scale"
+              style={{ width: 40, height: 40, borderRadius: 14, background: copied ? "rgba(34,197,94,0.7)" : "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.25)", transition: "background 0.2s" }}>
+              {copied ? <CheckIcon size={18} color="white" strokeWidth={2.5} /> : <Share2 size={18} color="white" strokeWidth={2} />}
             </button>
             <button
               onClick={() => setLiked(!liked)}
@@ -348,6 +357,21 @@ export default function EventDetailPage() {
         className="fixed left-0 right-0 flex items-center gap-3"
         style={{ background: "#fff", borderTop: "1px solid #E5E8EE", padding: "12px 16px", bottom: 72, zIndex: 50 }}
       >
+        {/* Share button — visible to all participants */}
+        {(joined || event.organizer_id === currentUserId) && (
+          <button
+            onClick={async () => {
+              const link = `${window.location.origin}/events/${eventId}`;
+              await navigator.clipboard.writeText(link);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2500);
+            }}
+            className="flex items-center justify-center tap-scale flex-shrink-0"
+            style={{ width: 52, height: 52, borderRadius: 14, background: copied ? "#22C55E" : "#F1F3F7", transition: "background 0.2s", border: "none", cursor: "pointer" }}
+          >
+            {copied ? <Copy size={20} color="#fff" strokeWidth={2} /> : <Share2 size={20} color="#1A2B4A" strokeWidth={2} />}
+          </button>
+        )}
         <Link
           href="/teams"
           className="flex items-center justify-center tap-scale flex-shrink-0"
