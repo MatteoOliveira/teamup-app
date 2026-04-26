@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bell, Search, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Event, Profile } from "@/lib/supabase";
@@ -240,26 +241,27 @@ const LEVEL_LABELS: Record<string, string> = {
 };
 
 export default function HomePage() {
+  const router = useRouter();
   const [activeSport, setActiveSport] = useState("all");
   const [events, setEvents] = useState<Event[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadingEvents, setLoadingEvents] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     async function load() {
       const { data: { session } } = await supabase.auth.getSession();
 
-      // Load profile
       if (session?.user) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-        setProfile(data);
+        const [{ data: profileData }, { count }] = await Promise.all([
+          supabase.from("profiles").select("*").eq("id", session.user.id).single(),
+          supabase.from("notifications").select("*", { count: "exact", head: true })
+            .eq("user_id", session.user.id).eq("read", false),
+        ]);
+        setProfile(profileData);
+        setUnreadCount(count ?? 0);
       }
 
-      // Load upcoming events
       const { data: evData } = await supabase
         .from("events")
         .select("*")
@@ -307,20 +309,21 @@ export default function HomePage() {
           </div>
 
           {/* Bell */}
-          <div className="relative">
+          <button onClick={() => router.push("/notifications")} className="relative tap-scale"
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
             <Bell size={22} color="white" strokeWidth={2} />
-            <div
-              className="absolute rounded-full"
-              style={{
-                width: 8,
-                height: 8,
-                background: "#FF6B35",
-                top: -2,
-                right: -2,
-                border: "1.5px solid #1A2B4A",
-              }}
-            />
-          </div>
+            {unreadCount > 0 && (
+              <div className="absolute flex items-center justify-center"
+                style={{
+                  minWidth: unreadCount > 9 ? 16 : 14, height: 14,
+                  background: "#FF6B35", borderRadius: 999,
+                  top: -2, right: -2, border: "1.5px solid #1A2B4A",
+                  fontSize: 8, fontWeight: 800, color: "#fff", padding: "0 2px",
+                }}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </div>
+            )}
+          </button>
         </div>
 
         {/* Location */}

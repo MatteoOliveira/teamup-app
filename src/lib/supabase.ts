@@ -108,6 +108,17 @@ export type Message = {
   sender?: Profile;
 };
 
+export type Notification = {
+  id: string;
+  user_id: string;
+  type: "event_joined" | "team_joined" | "event_invite" | string;
+  title: string;
+  body: string | null;
+  data: Record<string, string>;
+  read: boolean;
+  created_at: string;
+};
+
 export type Booking = {
   id: string;
   terrain_id: string;
