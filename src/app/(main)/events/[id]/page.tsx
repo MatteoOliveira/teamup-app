@@ -342,7 +342,15 @@ export default function EventDetailPage() {
                     {[event.terrain?.district, event.terrain?.price_hour === 0 ? "Gratuit" : event.terrain?.price_hour ? `${event.terrain.price_hour}€/h` : null].filter(Boolean).join(" · ")}
                   </p>
                 </div>
-                <button className="tap-scale" style={{ height: 30, borderRadius: 999, padding: "0 12px", fontSize: 12, fontWeight: 700, color: "white", background: "#1A2B4A", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
+                <button
+                  className="tap-scale"
+                  onClick={() => {
+                    const query = event.terrain?.lat && event.terrain?.lng
+                      ? `${event.terrain.lat},${event.terrain.lng}`
+                      : encodeURIComponent(event.terrain?.address ?? event.location_text ?? "");
+                    window.open(`https://www.google.com/maps/dir/?api=1&destination=${query}`, "_blank");
+                  }}
+                  style={{ height: 30, borderRadius: 999, padding: "0 12px", fontSize: 12, fontWeight: 700, color: "white", background: "#1A2B4A", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}>
                   Itinéraire →
                 </button>
               </div>
