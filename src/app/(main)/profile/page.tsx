@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Share2, SlidersHorizontal, ChevronRight, ShieldCheck, LogOut, Settings } from "lucide-react";
+import { Share2, SlidersHorizontal, ChevronRight, ShieldCheck, LogOut, Settings, Check } from "lucide-react";
 import { supabase, type Profile, type Event } from "@/lib/supabase";
 
 const SPORT_META: Record<string, { emoji: string; label: string; color: string; soft: string }> = {
@@ -111,6 +111,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -167,6 +168,13 @@ export default function ProfilePage() {
 
   const levelInfo = LEVEL_META[profile?.level ?? "beginner"];
 
+  async function handleShare() {
+    if (!profile) return;
+    await navigator.clipboard.writeText(`${window.location.origin}/profile/${profile.id}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
+
   async function handleSignOut() {
     await supabase.auth.signOut();
     window.location.href = "/login";
@@ -187,8 +195,9 @@ export default function ProfilePage() {
             <SlidersHorizontal size={18} color="white" strokeWidth={2} />
           </button>
           <span style={{ fontSize: 12, fontWeight: 700, color: "white", textTransform: "uppercase", letterSpacing: 2 }}>Profil</span>
-          <button className="flex items-center justify-center tap-scale" style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)" }}>
-            <Share2 size={18} color="white" strokeWidth={2} />
+          <button onClick={handleShare} className="flex items-center justify-center tap-scale"
+            style={{ width: 40, height: 40, borderRadius: 12, background: copied ? "rgba(46,196,182,0.3)" : "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer", transition: "background 0.2s" }}>
+            {copied ? <Check size={18} color="#2EC4B6" strokeWidth={3} /> : <Share2 size={18} color="white" strokeWidth={2} />}
           </button>
         </div>
 
@@ -359,6 +368,21 @@ export default function ProfilePage() {
         </div>
 
       </div>
+
+      {copied && (
+        <div style={{
+          position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)",
+          zIndex: 80, background: "#1A2B4A", color: "#fff",
+          borderRadius: 999, padding: "10px 20px",
+          display: "flex", alignItems: "center", gap: 8,
+          fontSize: 13, fontWeight: 700,
+          boxShadow: "0 8px 24px rgba(26,43,74,0.35)",
+          whiteSpace: "nowrap",
+        }}>
+          <Check size={14} color="#2EC4B6" strokeWidth={3} />
+          Lien copié !
+        </div>
+      )}
     </div>
   );
 }

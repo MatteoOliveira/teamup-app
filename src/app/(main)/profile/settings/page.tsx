@@ -109,8 +109,8 @@ export default function SettingsPage() {
   const [notifReminder, setNotifReminder] = useState(true);
   const [notifTeam, setNotifTeam]       = useState(false);
 
-  /* privacy prefs (local only) */
-  const [privPublic, setPrivPublic]     = useState(true);
+  /* privacy prefs */
+  const [isPrivate, setIsPrivate]       = useState(false);
   const [privSports, setPrivSports]     = useState(true);
   const [privLocation, setPrivLocation] = useState(false);
 
@@ -128,6 +128,7 @@ export default function SettingsPage() {
         setLocation(data.location ?? "");
         setSports(data.sports ?? []);
         setLevel(data.level ?? "beginner");
+        setIsPrivate(data.is_private ?? false);
       }
       setLoading(false);
     }
@@ -148,6 +149,7 @@ export default function SettingsPage() {
       location: location || null,
       sports,
       level,
+      is_private: isPrivate,
     }).eq("id", profile.id);
     setSaving(false);
     setSaved(true);
@@ -353,7 +355,7 @@ export default function SettingsPage() {
           <SectionTitle icon={<Lock size={15} color="#fff" strokeWidth={2.5} />} label="Confidentialité" />
 
           {[
-            { label: "Profil public", sub: "Visible par tous les utilisateurs", value: privPublic, onChange: setPrivPublic },
+            { label: "Profil privé", sub: "Cache tes stats et événements aux autres", value: isPrivate, onChange: setIsPrivate },
             { label: "Afficher mes sports", sub: "Dans la recherche et ton profil", value: privSports, onChange: setPrivSports },
             { label: "Afficher ma localisation", sub: "Ville affichée sur ton profil", value: privLocation, onChange: setPrivLocation },
           ].map((item, i, arr) => (

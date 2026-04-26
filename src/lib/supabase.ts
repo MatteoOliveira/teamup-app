@@ -22,6 +22,7 @@ export type Profile = {
   teams_count: number;
   hours_played: number;
   is_admin: boolean;
+  is_private: boolean;
   created_at: string;
 };
 

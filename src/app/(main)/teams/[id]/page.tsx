@@ -648,10 +648,12 @@ export default function TeamChatPage() {
                   return (
                     <div
                       key={m.id}
-                      className="flex items-center gap-3"
+                      className="flex items-center gap-3 tap-scale"
+                      onClick={() => { setShowMembers(false); router.push(`/profile/${m.user_id}`); }}
                       style={{
                         padding: "10px 0",
                         borderBottom: i < members.length - 1 ? "1px solid #F1F3F7" : "none",
+                        cursor: "pointer",
                       }}
                     >
                       <div
@@ -679,7 +681,7 @@ export default function TeamChatPage() {
 
                       {amOwner && !isOwner && (
                         <button
-                          onClick={() => handleKick(m)}
+                          onClick={(e) => { e.stopPropagation(); handleKick(m); }}
                           disabled={kickingId === m.user_id}
                           className="flex items-center justify-center tap-scale"
                           style={{
