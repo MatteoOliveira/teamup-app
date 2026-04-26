@@ -20,6 +20,7 @@ ALTER TABLE public.messages
 
 -- ── Events SELECT policy — extend to cover all visibility types
 DROP POLICY IF EXISTS "Public events visible to all" ON public.events;
+DROP POLICY IF EXISTS "Events visible by visibility rules" ON public.events;
 
 CREATE POLICY "Events visible by visibility rules"
   ON public.events FOR SELECT
