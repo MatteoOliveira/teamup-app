@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, MoreHorizontal, SendHorizonal, Plus, Users, Lock, CalendarDays, MapPin, UserMinus, Crown, X } from "lucide-react";
+import { ChevronLeft, MoreHorizontal, SendHorizonal, Plus, Users, Lock, CalendarDays, MapPin, UserMinus, Crown, X, Share2, Check } from "lucide-react";
 import { supabase, type Message } from "@/lib/supabase";
 import { getInitials, SPORT_META } from "@/lib/utils";
 
@@ -166,6 +166,8 @@ export default function TeamChatPage() {
   const [members, setMembers] = useState<TeamMemberWithProfile[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [kickingId, setKickingId] = useState<string | null>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const seenIds = useRef(new Set<string>());
@@ -276,6 +278,14 @@ export default function TeamChatPage() {
       setTeam((t) => t ? { ...t, members_count: Math.max(0, t.members_count - 1) } : t);
     }
     setKickingId(null);
+  }
+
+  async function handleShare() {
+    const url = `${window.location.origin}/teams/${teamId}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setShowMenu(false);
+    setTimeout(() => setCopied(false), 2500);
   }
 
   async function handleJoin() {
@@ -430,7 +440,7 @@ export default function TeamChatPage() {
           </div>
 
           <button
-            onClick={openMembers}
+            onClick={() => setShowMenu(true)}
             className="flex items-center justify-center tap-scale flex-shrink-0"
             style={{ width: 36, height: 36, borderRadius: 10, background: "#F1F3F7", border: "none", cursor: "pointer" }}
           >
@@ -509,6 +519,68 @@ export default function TeamChatPage() {
           <SendHorizonal size={17} color={inputText.trim() ? "#fff" : "#8A93A6"} strokeWidth={2.5} style={{ transition: "color 0.18s ease" }} />
         </button>
       </div>
+
+      {/* ── Copied toast ── */}
+      {copied && (
+        <div style={{
+          position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)",
+          zIndex: 80, background: "#1A2B4A", color: "#fff",
+          borderRadius: 999, padding: "10px 20px",
+          display: "flex", alignItems: "center", gap: 8,
+          fontSize: 13, fontWeight: 700,
+          boxShadow: "0 8px 24px rgba(26,43,74,0.35)",
+          animation: "fadeSlide 0.25s ease",
+          whiteSpace: "nowrap",
+        }}>
+          <Check size={14} color="#2EC4B6" strokeWidth={3} />
+          Lien copié !
+        </div>
+      )}
+
+      {/* ── Action menu ── */}
+      {showMenu && (
+        <>
+          <div onClick={() => setShowMenu(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(26,43,74,0.4)", backdropFilter: "blur(2px)" }} />
+          <div style={{
+            position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 61,
+            background: "#fff", borderRadius: "20px 20px 0 0",
+            padding: "12px 16px 40px",
+            boxShadow: "0 -8px 40px rgba(26,43,74,0.18)",
+            animation: "slideUp 0.25s cubic-bezier(0.32,0.72,0,1)",
+          }}>
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: "#E5E8EE", margin: "0 auto 16px" }} />
+
+            <button
+              onClick={() => { setShowMenu(false); openMembers(); }}
+              className="flex items-center gap-4 tap-scale w-full"
+              style={{ background: "none", border: "none", cursor: "pointer", padding: "14px 4px", width: "100%", borderBottom: "1px solid #F1F3F7" }}
+            >
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: "#EEF0F5", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Users size={18} color="#1A2B4A" strokeWidth={2.5} />
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#1A2B4A" }}>Voir les membres</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#8A93A6", marginTop: 1 }}>{team?.members_count} membres dans cette équipe</p>
+              </div>
+            </button>
+
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-4 tap-scale w-full"
+              style={{ background: "none", border: "none", cursor: "pointer", padding: "14px 4px", width: "100%" }}
+            >
+              <div style={{ width: 40, height: 40, borderRadius: 12, background: "#FFE6DA", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Share2 size={18} color="#FF6B35" strokeWidth={2.5} />
+              </div>
+              <div style={{ textAlign: "left" }}>
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#1A2B4A" }}>Partager l'équipe</p>
+                <p style={{ fontSize: 12, fontWeight: 600, color: "#8A93A6", marginTop: 1 }}>Copier le lien d'invitation</p>
+              </div>
+            </button>
+          </div>
+        </>
+      )}
 
       {/* ── Members bottom sheet ── */}
       {showMembers && (
