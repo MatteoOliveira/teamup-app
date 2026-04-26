@@ -329,7 +329,7 @@ export default function ProfilePage() {
         <div style={{ margin: "20px 16px 32px" }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: "#8A93A6", textTransform: "uppercase", letterSpacing: 0.8 }}>Compte</span>
           <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #E5E8EE", overflow: "hidden", marginTop: 10, boxShadow: "0 1px 0 rgba(26,43,74,0.04), 0 8px 28px -16px rgba(26,43,74,0.12)" }}>
-            <Link href="/profile" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: "1px solid #F1F3F7" }}>
+            <Link href="/profile/settings" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: "1px solid #F1F3F7" }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: "#5B647818", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Settings size={17} color="#5B6478" strokeWidth={2.5} />
               </div>
