@@ -33,6 +33,7 @@ export default function TeamsPage() {
   const [publicTeams, setPublicTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<"mine" | "public">("mine");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -101,7 +102,7 @@ export default function TeamsPage() {
   return (
     <div style={{ minHeight: "100vh", background: "#F6F7FA", fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif', paddingBottom: 96 }}>
       {/* Header */}
-      <div style={{ position: "sticky", top: 0, zIndex: 40, background: "#fff", borderBottom: "1px solid #E5E8EE", padding: "48px 16px 12px" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 40, background: "#fff", borderBottom: "1px solid #E5E8EE", padding: "48px 16px 0" }}>
         <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
           <p style={{ fontSize: 22, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.4 }}>Équipes</p>
           <button
@@ -112,115 +113,160 @@ export default function TeamsPage() {
             + Créer
           </button>
         </div>
-        <div className="flex items-center" style={{ height: 44, borderRadius: 999, background: "#F1F3F7", padding: "0 14px", gap: 8 }}>
+
+        {/* Search */}
+        <div className="flex items-center" style={{ height: 44, borderRadius: 999, background: "#F1F3F7", padding: "0 14px", gap: 8, marginBottom: 12 }}>
           <Search size={16} color="#8A93A6" strokeWidth={2} />
-          <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher une équipe..."
+          <input type="text" value={query} onChange={(e) => setQuery(e.target.value)}
+            placeholder={tab === "mine" ? "Rechercher dans mes équipes..." : "Rechercher une équipe publique..."}
             style={{ flex: 1, background: "transparent", border: "none", outline: "none", fontSize: 14, fontWeight: 600, color: "#1A2B4A", fontFamily: "inherit" }} />
           {query && <button onClick={() => setQuery("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A93A6", fontSize: 16 }}>×</button>}
+        </div>
+
+        {/* Tabs */}
+        <div className="flex" style={{ gap: 0, borderTop: "1px solid #F1F3F7" }}>
+          {(["mine", "public"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)}
+              style={{
+                flex: 1, height: 42, background: "none", border: "none", cursor: "pointer",
+                fontSize: 13, fontWeight: 700,
+                color: tab === t ? "#FF6B35" : "#8A93A6",
+                borderBottom: tab === t ? "2px solid #FF6B35" : "2px solid transparent",
+                transition: "all 0.15s",
+              }}
+            >
+              {t === "mine"
+                ? `Mes équipes${myTeams.length > 0 ? ` (${myTeams.length})` : ""}`
+                : `Équipes publiques${publicTeams.length > 0 ? ` (${publicTeams.length})` : ""}`}
+            </button>
+          ))}
         </div>
       </div>
 
       <div style={{ padding: "16px 16px 0" }}>
         {loading ? (
           <div className="flex flex-col" style={{ gap: 10 }}>
-            {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 72, borderRadius: 18 }} />)}
+            {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 18 }} />)}
           </div>
-        ) : (
-          <>
-            {/* Mes équipes */}
-            {filteredMine.length > 0 && (
-              <div style={{ marginBottom: 24 }}>
-                <p style={{ fontSize: 14, fontWeight: 700, color: "#8A93A6", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
-                  Mes équipes
-                </p>
-                <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #E5E8EE", overflow: "hidden", boxShadow: "0 1px 0 rgba(26,43,74,0.04), 0 8px 28px -16px rgba(26,43,74,0.12)" }}>
-                  {filteredMine.map((team, idx) => {
-                    const meta = SPORT_META[team.sport] ?? SPORT_META.basket;
-                    return (
-                      <Link key={team.id} href={`/teams/${team.id}`} style={{ textDecoration: "none", display: "block" }}>
-                        <div className="flex items-center gap-3 tap-scale"
-                          style={{ padding: "14px 16px", borderBottom: idx < filteredMine.length - 1 ? "1px solid #F1F3F7" : "none" }}>
-                          <div className="relative flex-shrink-0">
-                            <div style={{ width: 48, height: 48, borderRadius: 14, background: meta.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
-                              {meta.emoji}
-                            </div>
-                            <div style={{ position: "absolute", width: 10, height: 10, borderRadius: "50%", background: "#22C55E", border: "2px solid #fff", bottom: -1, right: -1 }} />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 15, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.2 }}>{team.name}</p>
-                            <div className="flex items-center gap-1" style={{ marginTop: 3 }}>
-                              <Users size={11} color="#8A93A6" strokeWidth={2.5} />
-                              <span style={{ fontSize: 11, fontWeight: 600, color: "#8A93A6" }}>{team.members_count} membres</span>
-                            </div>
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: meta.color, background: meta.soft, borderRadius: 999, padding: "3px 9px", flexShrink: 0 }}>
-                            {meta.emoji} {meta.label}
-                          </span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Découvrir */}
-            {filteredPublic.length > 0 && (
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 700, color: "#8A93A6", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 10 }}>
-                  Découvrir
-                </p>
-                <div className="flex flex-col" style={{ gap: 10 }}>
-                  {filteredPublic.map((team) => {
-                    const meta = SPORT_META[team.sport] ?? SPORT_META.basket;
-                    return (
-                      <div key={team.id} style={{ background: "#fff", borderRadius: 18, border: "1px solid #E5E8EE", padding: "14px 16px", boxShadow: "0 1px 0 rgba(26,43,74,0.04), 0 8px 28px -16px rgba(26,43,74,0.12)" }}>
-                        <div className="flex items-center gap-3">
-                          <div style={{ width: 48, height: 48, borderRadius: 14, background: meta.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
-                            {meta.emoji}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontSize: 15, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.2 }}>{team.name}</p>
-                            <div className="flex items-center gap-2" style={{ marginTop: 4, flexWrap: "wrap" }}>
-                              <span className="font-bold" style={{ fontSize: 11, color: meta.color, background: meta.soft, borderRadius: 999, padding: "2px 8px" }}>
-                                {meta.emoji} {meta.label}
-                              </span>
-                              <span style={{ fontSize: 11, fontWeight: 600, color: "#8A93A6" }}>{LEVEL_LABELS[team.level] ?? team.level}</span>
-                              {team.location && <span style={{ fontSize: 11, fontWeight: 600, color: "#8A93A6" }}>📍 {team.location}</span>}
-                            </div>
-                            <div className="flex items-center gap-1" style={{ marginTop: 4 }}>
-                              <Users size={11} color="#8A93A6" strokeWidth={2.5} />
-                              <span style={{ fontSize: 11, fontWeight: 600, color: "#8A93A6" }}>{team.members_count} membres</span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleJoin(team)}
-                            disabled={joiningId === team.id}
-                            className="tap-scale font-bold flex-shrink-0"
-                            style={{ height: 32, borderRadius: 999, padding: "0 14px", fontSize: 12, color: "#FF6B35", background: "#FFE6DA", border: "none", cursor: "pointer", opacity: joiningId === team.id ? 0.6 : 1 }}
-                          >
-                            {joiningId === team.id ? "…" : "Rejoindre"}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Empty */}
-            {filteredMine.length === 0 && filteredPublic.length === 0 && (
-              <div className="flex flex-col items-center justify-center"
-                style={{ background: "#fff", borderRadius: 18, padding: "40px 20px", border: "1px solid #E5E8EE", color: "#8A93A6", fontSize: 14, fontWeight: 600, gap: 10, marginTop: 8, textAlign: "center" }}>
-                <span style={{ fontSize: 40 }}>👥</span>
-                <span>Aucune équipe trouvée</span>
-                <button onClick={() => setShowCreate(true)} style={{ marginTop: 4, fontSize: 13, fontWeight: 700, color: "#FF6B35", background: "none", border: "none", cursor: "pointer" }}>
-                  Crée la première →
+        ) : tab === "mine" ? (
+          /* ── Onglet Mes équipes ── */
+          filteredMine.length === 0 ? (
+            <div className="flex flex-col items-center justify-center"
+              style={{ padding: "64px 24px", textAlign: "center", animation: "fadeIn 0.3s ease" }}>
+              <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }`}</style>
+              <div style={{ fontSize: 56, marginBottom: 16, lineHeight: 1 }}>👥</div>
+              <p style={{ fontSize: 18, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.3, marginBottom: 8 }}>
+                Pas encore d'équipe
+              </p>
+              <p style={{ fontSize: 14, fontWeight: 500, color: "#8A93A6", lineHeight: 1.5, marginBottom: 28 }}>
+                Crée ta propre équipe ou rejoins une équipe publique pour commencer.
+              </p>
+              <div className="flex flex-col" style={{ gap: 10, width: "100%", maxWidth: 280 }}>
+                <button onClick={() => setShowCreate(true)}
+                  className="tap-scale"
+                  style={{ height: 48, borderRadius: 14, border: "none", cursor: "pointer", background: "linear-gradient(135deg, #FF6B35, #E5551F)", color: "#fff", fontSize: 15, fontWeight: 800, boxShadow: "0 6px 18px -6px rgba(255,107,53,0.5)" }}>
+                  + Créer une équipe
+                </button>
+                <button onClick={() => setTab("public")}
+                  className="tap-scale"
+                  style={{ height: 48, borderRadius: 14, border: "1.5px solid #E5E8EE", cursor: "pointer", background: "#fff", color: "#1A2B4A", fontSize: 15, fontWeight: 700 }}>
+                  Voir les équipes publiques
                 </button>
               </div>
-            )}
-          </>
+            </div>
+          ) : (
+            <div style={{ background: "#fff", borderRadius: 18, border: "1px solid #E5E8EE", overflow: "hidden", boxShadow: "0 1px 0 rgba(26,43,74,0.04), 0 8px 28px -16px rgba(26,43,74,0.12)" }}>
+              {filteredMine.map((team, idx) => {
+                const meta = SPORT_META[team.sport] ?? SPORT_META.basket;
+                const isOwner = team.owner_id === currentUserId;
+                return (
+                  <Link key={team.id} href={`/teams/${team.id}`} style={{ textDecoration: "none", display: "block" }}>
+                    <div className="flex items-center gap-3 tap-scale"
+                      style={{ padding: "14px 16px", borderBottom: idx < filteredMine.length - 1 ? "1px solid #F1F3F7" : "none" }}>
+                      <div className="relative flex-shrink-0">
+                        <div style={{ width: 48, height: 48, borderRadius: 14, background: meta.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+                          {meta.emoji}
+                        </div>
+                        <div style={{ position: "absolute", width: 10, height: 10, borderRadius: "50%", background: "#22C55E", border: "2px solid #fff", bottom: -1, right: -1 }} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="flex items-center gap-2" style={{ marginBottom: 3 }}>
+                          <p style={{ fontSize: 15, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {team.name}
+                          </p>
+                          <span style={{
+                            fontSize: 10, fontWeight: 800, letterSpacing: 0.3, borderRadius: 999, padding: "2px 7px", flexShrink: 0,
+                            background: isOwner ? "#FEF3C7" : "#F1F3F7",
+                            color: isOwner ? "#D97706" : "#8A93A6",
+                          }}>
+                            {isOwner ? "👑 Proprio" : "Membre"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
+                            <Users size={11} color="#8A93A6" strokeWidth={2.5} />
+                            <span style={{ fontSize: 11, fontWeight: 600, color: "#8A93A6" }}>{team.members_count} membres</span>
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: meta.color }}>{meta.emoji} {meta.label}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          /* ── Onglet Équipes publiques ── */
+          filteredPublic.length === 0 ? (
+            <div className="flex flex-col items-center justify-center"
+              style={{ padding: "64px 24px", textAlign: "center" }}>
+              <div style={{ fontSize: 56, marginBottom: 16, lineHeight: 1 }}>🔍</div>
+              <p style={{ fontSize: 18, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.3, marginBottom: 8 }}>
+                {query ? "Aucun résultat" : "Aucune équipe publique"}
+              </p>
+              <p style={{ fontSize: 14, fontWeight: 500, color: "#8A93A6" }}>
+                {query ? "Essaie un autre mot-clé." : "Sois le premier à créer une équipe !"}
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col" style={{ gap: 10 }}>
+              {filteredPublic.map((team) => {
+                const meta = SPORT_META[team.sport] ?? SPORT_META.basket;
+                return (
+                  <div key={team.id} style={{ background: "#fff", borderRadius: 18, border: "1px solid #E5E8EE", padding: "14px 16px", boxShadow: "0 1px 0 rgba(26,43,74,0.04), 0 8px 28px -16px rgba(26,43,74,0.12)" }}>
+                    <div className="flex items-center gap-3">
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: meta.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+                        {meta.emoji}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 15, fontWeight: 800, color: "#1A2B4A", letterSpacing: -0.2, marginBottom: 4 }}>{team.name}</p>
+                        <div className="flex items-center gap-2" style={{ flexWrap: "wrap" }}>
+                          <span className="font-bold" style={{ fontSize: 11, color: meta.color, background: meta.soft, borderRadius: 999, padding: "2px 8px" }}>
+                            {meta.emoji} {meta.label}
+                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#8A93A6" }}>{LEVEL_LABELS[team.level] ?? team.level}</span>
+                          {team.location && <span style={{ fontSize: 11, fontWeight: 600, color: "#8A93A6" }}>📍 {team.location}</span>}
+                        </div>
+                        <div className="flex items-center gap-1" style={{ marginTop: 4 }}>
+                          <Users size={11} color="#8A93A6" strokeWidth={2.5} />
+                          <span style={{ fontSize: 11, fontWeight: 600, color: "#8A93A6" }}>{team.members_count} membres</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleJoin(team)}
+                        disabled={joiningId === team.id}
+                        className="tap-scale font-bold flex-shrink-0"
+                        style={{ height: 32, borderRadius: 999, padding: "0 14px", fontSize: 12, color: "#FF6B35", background: "#FFE6DA", border: "none", cursor: "pointer", opacity: joiningId === team.id ? 0.6 : 1 }}
+                      >
+                        {joiningId === team.id ? "…" : "Rejoindre"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
         )}
       </div>
 
