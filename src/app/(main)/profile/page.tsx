@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Share2, SlidersHorizontal, ChevronRight, ShieldCheck, LogOut, Settings, Check } from "lucide-react";
 import { supabase, type Profile, type Event } from "@/lib/supabase";
@@ -108,6 +109,7 @@ function EventCard({ event }: { event: Event }) {
 }
 
 export default function ProfilePage() {
+  const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,7 +193,7 @@ export default function ProfilePage() {
         <div className="absolute pointer-events-none" style={{ bottom: 20, left: -40, width: 130, height: 130, borderRadius: "50%", background: "rgba(46,196,182,0.15)", filter: "blur(30px)" }} />
 
         <div className="relative flex items-center justify-between" style={{ marginBottom: 24 }}>
-          <button className="flex items-center justify-center tap-scale" style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)" }}>
+          <button onClick={() => router.push("/profile/settings")} className="flex items-center justify-center tap-scale" style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.12)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.2)", cursor: "pointer" }}>
             <SlidersHorizontal size={18} color="white" strokeWidth={2} />
           </button>
           <span style={{ fontSize: 12, fontWeight: 700, color: "white", textTransform: "uppercase", letterSpacing: 2 }}>Profil</span>
