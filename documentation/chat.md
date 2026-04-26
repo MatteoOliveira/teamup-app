@@ -570,6 +570,24 @@ Page de gestion des équipes dans l'espace admin :
 
 **À appliquer dans Supabase SQL Editor**
 
+## 2026-04-26 — Panel membres équipe avec exclusion
+
+### Fonctionnalité ajoutée
+- `src/app/(main)/teams/[id]/page.tsx` : bottom sheet "Membres" accessible via le bouton MoreHorizontal en haut de la page de chat
+- **Ouverture** : tap sur `···` → `openMembers()` charge les membres via `team_members` jointure `profiles`
+- **Affichage** :
+  - Avatar avec dégradé coloré + initiales
+  - Nom, badge rôle (Propriétaire avec couronne dorée, Admin, Membre)
+  - Indicateur "(vous)" pour l'utilisateur courant
+- **Exclusion** : seul le propriétaire voit le bouton `UserMinus` orange à côté de chaque membre (sauf lui-même)
+  - Confirmation `window.confirm` avant suppression
+  - `handleKick()` : DELETE sur `team_members` + mise à jour locale du state
+  - État de chargement sur le bouton pendant l'opération (`kickingId`)
+- **Migration 011** (`supabase/migrations/011_team_kick_member.sql`) : nouvelle policy RLS autorisant le propriétaire à supprimer n'importe quel membre
+  - **À appliquer dans Supabase SQL Editor**
+- Skeleton loading pendant le fetch des membres
+- Animation `slideUp` + backdrop flou à l'ouverture
+
 ## 2026-04-26 — Correction RLS récursion infinie messages (500)
 
 ### Problème

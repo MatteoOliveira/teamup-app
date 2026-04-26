@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, MoreHorizontal, SendHorizonal, Plus, Users, Lock, CalendarDays, MapPin } from "lucide-react";
+import { ChevronLeft, MoreHorizontal, SendHorizonal, Plus, Users, Lock, CalendarDays, MapPin, UserMinus, Crown, X } from "lucide-react";
 import { supabase, type Message } from "@/lib/supabase";
 import { getInitials, SPORT_META } from "@/lib/utils";
 
@@ -14,6 +14,14 @@ type TeamInfo = {
   members_count: number;
   is_public: boolean;
   owner_id: string;
+};
+
+type TeamMemberWithProfile = {
+  id: string;
+  user_id: string;
+  role: "owner" | "admin" | "member";
+  joined_at: string;
+  profile: { id: string; full_name: string | null; username: string | null } | null;
 };
 
 const BUBBLE_GRADIENTS = [
@@ -154,6 +162,10 @@ export default function TeamChatPage() {
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showMembers, setShowMembers] = useState(false);
+  const [members, setMembers] = useState<TeamMemberWithProfile[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [kickingId, setKickingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const seenIds = useRef(new Set<string>());
@@ -234,6 +246,36 @@ export default function TeamChatPage() {
     });
     setSending(false);
     inputRef.current?.focus();
+  }
+
+  async function openMembers() {
+    setShowMembers(true);
+    if (members.length > 0) return;
+    setLoadingMembers(true);
+    const { data } = await supabase
+      .from("team_members")
+      .select("id, user_id, role, joined_at, profile:profiles!user_id(id, full_name, username)")
+      .eq("team_id", teamId)
+      .order("joined_at", { ascending: true });
+    setMembers((data ?? []) as unknown as TeamMemberWithProfile[]);
+    setLoadingMembers(false);
+  }
+
+  async function handleKick(member: TeamMemberWithProfile) {
+    if (!team || kickingId) return;
+    const name = member.profile?.full_name ?? "ce membre";
+    if (!window.confirm(`Exclure ${name} de l'équipe ?`)) return;
+    setKickingId(member.user_id);
+    const { error } = await supabase
+      .from("team_members")
+      .delete()
+      .eq("team_id", teamId)
+      .eq("user_id", member.user_id);
+    if (!error) {
+      setMembers((prev) => prev.filter((m) => m.user_id !== member.user_id));
+      setTeam((t) => t ? { ...t, members_count: Math.max(0, t.members_count - 1) } : t);
+    }
+    setKickingId(null);
   }
 
   async function handleJoin() {
@@ -388,6 +430,7 @@ export default function TeamChatPage() {
           </div>
 
           <button
+            onClick={openMembers}
             className="flex items-center justify-center tap-scale flex-shrink-0"
             style={{ width: 36, height: 36, borderRadius: 10, background: "#F1F3F7", border: "none", cursor: "pointer" }}
           >
@@ -466,6 +509,125 @@ export default function TeamChatPage() {
           <SendHorizonal size={17} color={inputText.trim() ? "#fff" : "#8A93A6"} strokeWidth={2.5} style={{ transition: "color 0.18s ease" }} />
         </button>
       </div>
+
+      {/* ── Members bottom sheet ── */}
+      {showMembers && (
+        <>
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowMembers(false)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 60,
+              background: "rgba(26,43,74,0.45)",
+              backdropFilter: "blur(2px)",
+            }}
+          />
+
+          {/* Panel */}
+          <div style={{
+            position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 61,
+            background: "#fff",
+            borderRadius: "20px 20px 0 0",
+            maxHeight: "70vh",
+            display: "flex",
+            flexDirection: "column",
+            boxShadow: "0 -8px 40px rgba(26,43,74,0.18)",
+            animation: "slideUp 0.28s cubic-bezier(0.32,0.72,0,1)",
+          }}>
+            <style>{`@keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
+
+            {/* Handle + header */}
+            <div style={{ padding: "12px 16px 0", flexShrink: 0 }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: "#E5E8EE", margin: "0 auto 14px" }} />
+              <div className="flex items-center justify-between" style={{ marginBottom: 14 }}>
+                <p style={{ fontSize: 16, fontWeight: 800, color: "#1A2B4A" }}>
+                  Membres · {team?.members_count ?? members.length}
+                </p>
+                <button
+                  onClick={() => setShowMembers(false)}
+                  className="flex items-center justify-center tap-scale"
+                  style={{ width: 32, height: 32, borderRadius: 10, background: "#F6F7FA", border: "none", cursor: "pointer" }}
+                >
+                  <X size={16} color="#5B6478" strokeWidth={2.5} />
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div style={{ overflowY: "auto", flex: 1, padding: "0 16px 32px" }}>
+              {loadingMembers ? (
+                [0, 1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-3" style={{ padding: "10px 0" }}>
+                    <div className="skeleton" style={{ width: 42, height: 42, borderRadius: 13, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div className="skeleton" style={{ width: "50%", height: 13, borderRadius: 6, marginBottom: 7 }} />
+                      <div className="skeleton" style={{ width: "30%", height: 10, borderRadius: 6 }} />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                members.map((m, i) => {
+                  const isOwner = m.user_id === team?.owner_id;
+                  const isMe = m.user_id === currentUserId;
+                  const amOwner = currentUserId === team?.owner_id;
+                  const initials = getInitials(m.profile?.full_name);
+                  const gradient = avatarGradient(m.user_id);
+
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-3"
+                      style={{
+                        padding: "10px 0",
+                        borderBottom: i < members.length - 1 ? "1px solid #F1F3F7" : "none",
+                      }}
+                    >
+                      <div
+                        className="flex items-center justify-center flex-shrink-0"
+                        style={{ width: 42, height: 42, borderRadius: 13, background: gradient, fontSize: 14, fontWeight: 800, color: "#fff" }}
+                      >
+                        {initials}
+                      </div>
+
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{
+                          fontSize: 14, fontWeight: 700, color: "#1A2B4A",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {m.profile?.full_name ?? m.profile?.username ?? "Membre"}
+                          {isMe && <span style={{ fontSize: 12, fontWeight: 600, color: "#8A93A6", marginLeft: 6 }}>( vous )</span>}
+                        </p>
+                        <div className="flex items-center gap-1" style={{ marginTop: 2 }}>
+                          {isOwner && <Crown size={11} color="#F4B43A" strokeWidth={2.5} />}
+                          <p style={{ fontSize: 12, fontWeight: 600, color: isOwner ? "#F4B43A" : "#8A93A6" }}>
+                            {isOwner ? "Propriétaire" : m.role === "admin" ? "Admin" : "Membre"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {amOwner && !isOwner && (
+                        <button
+                          onClick={() => handleKick(m)}
+                          disabled={kickingId === m.user_id}
+                          className="flex items-center justify-center tap-scale"
+                          style={{
+                            width: 36, height: 36, borderRadius: 10,
+                            background: kickingId === m.user_id ? "#F1F3F7" : "#FFF0EC",
+                            border: "none", cursor: "pointer", flexShrink: 0,
+                            transition: "background 0.15s",
+                          }}
+                        >
+                          <UserMinus size={15} color={kickingId === m.user_id ? "#8A93A6" : "#FF6B35"} strokeWidth={2.5} />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
