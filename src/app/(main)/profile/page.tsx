@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Share2, SlidersHorizontal, ChevronRight, ShieldCheck, LogOut, Settings, Check, CalendarCheck } from "lucide-react";
+import { Share2, SlidersHorizontal, ChevronRight, ShieldCheck, LogOut, Settings, Check, CalendarCheck, Dumbbell } from "lucide-react";
 import { supabase, type Profile, type Event } from "@/lib/supabase";
 
 const SPORT_META: Record<string, { emoji: string; label: string; color: string; soft: string }> = {
@@ -352,6 +352,13 @@ export default function ProfilePage() {
                 <CalendarCheck size={17} color="#2EC4B6" strokeWidth={2.5} />
               </div>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: "#1A2B4A" }}>Mes réservations</span>
+              <ChevronRight size={16} color="#8A93A6" strokeWidth={2} />
+            </Link>
+            <Link href="/sports" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: "1px solid #F1F3F7" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "#FF6B3518", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Dumbbell size={17} color="#FF6B35" strokeWidth={2.5} />
+              </div>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: "#1A2B4A" }}>Sports & Propositions</span>
               <ChevronRight size={16} color="#8A93A6" strokeWidth={2} />
             </Link>
             {profile?.is_admin && (

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, CalendarDays, Users, MapPin, Shield,
-  ShieldCheck, LogOut, Menu, X,
+  ShieldCheck, LogOut, Menu, BookMarked, Dumbbell,
 } from "lucide-react";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -16,6 +16,8 @@ const NAV = [
   { href: "/admin/users", label: "Utilisateurs", icon: Users },
   { href: "/admin/terrains", label: "Terrains", icon: MapPin },
   { href: "/admin/teams", label: "Équipes", icon: Shield },
+  { href: "/admin/reservations", label: "Réservations", icon: BookMarked },
+  { href: "/admin/sports", label: "Sports", icon: Dumbbell },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

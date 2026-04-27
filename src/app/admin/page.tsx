@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
-  CalendarDays, Users, MapPin, TrendingUp,
-  ChevronRight, Clock, CheckCircle2, XCircle,
+  CalendarDays, Users, MapPin, TrendingUp, BookMarked,
+  ChevronRight, Clock,
 } from "lucide-react";
 
 type Stats = {
@@ -15,6 +15,7 @@ type Stats = {
   totalTeams: number;
   totalTerrains: number;
   totalParticipants: number;
+  totalBookings: number;
 };
 
 type RecentEvent = {
@@ -73,7 +74,7 @@ function StatCard({ icon: Icon, label, value, sub, color }: {
 export default function AdminDashboard() {
   const [stats, setStats] = useState<Stats>({
     totalEvents: 0, openEvents: 0, totalUsers: 0,
-    totalTeams: 0, totalTerrains: 0, totalParticipants: 0,
+    totalTeams: 0, totalTerrains: 0, totalParticipants: 0, totalBookings: 0,
   });
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,6 +88,7 @@ export default function AdminDashboard() {
         { count: totalTeams },
         { count: totalTerrains },
         { count: totalParticipants },
+        { count: totalBookings },
         { data: events },
       ] = await Promise.all([
         supabase.from("events").select("*", { count: "exact", head: true }),
@@ -95,6 +97,7 @@ export default function AdminDashboard() {
         supabase.from("teams").select("*", { count: "exact", head: true }),
         supabase.from("terrains").select("*", { count: "exact", head: true }),
         supabase.from("event_participants").select("*", { count: "exact", head: true }),
+        supabase.from("bookings").select("*", { count: "exact", head: true }).eq("status", "confirmed"),
         supabase.from("events").select("id,title,sport,event_date,start_time,current_players,max_players,status")
           .order("created_at", { ascending: false }).limit(5),
       ]);
@@ -106,6 +109,7 @@ export default function AdminDashboard() {
         totalTeams: totalTeams ?? 0,
         totalTerrains: totalTerrains ?? 0,
         totalParticipants: totalParticipants ?? 0,
+        totalBookings: totalBookings ?? 0,
       });
       setRecentEvents(events ?? []);
       setLoading(false);
@@ -148,6 +152,8 @@ export default function AdminDashboard() {
           color="#F4B43A" />
         <StatCard icon={Users} label="Participations" value={stats.totalParticipants}
           sub="total" color="#22C55E" />
+        <StatCard icon={BookMarked} label="Réservations" value={stats.totalBookings}
+          sub="confirmées" color="#3B82F6" />
       </div>
 
       {/* Recent events */}

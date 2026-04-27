@@ -599,3 +599,98 @@ Page de gestion des équipes dans l'espace admin :
 - Policy `team_members SELECT` simplifiée : `user_id = auth.uid() OR check_team_is_public(team_id)` (plus de sous-requête auto-référente)
 - Policies `messages SELECT` et `messages INSERT` recrées proprement avec `check_team_membership()` (déjà SECURITY DEFINER depuis migration 006)
 - **Appliqué via Supabase SQL Editor**
+
+## 2026-04-26 — Page détail terrain + système de réservation
+
+### `src/app/(main)/fields/[id]/page.tsx` — Nouvelle page (créée)
+
+#### Structure
+- **Hero** : gradient dynamique selon le sport du terrain, emoji décoratif géant (opacity 0.13), titre + district + badges (sport, rating, prix)
+- **Top bar fixe** : bouton retour + partage (glassmorphism)
+- **Info card** (overlap -20px sur le hero) : chips amenities + adresse + bouton "Itinéraire" (ouvre Google Maps)
+
+#### Calendrier de disponibilité
+- **Date strip** : 7 jours à partir d'aujourd'hui (jour + numéro), actif = navy + barre orange en bas
+- **Sélecteur de durée** : 3 boutons 1h / 1h30 / 2h, actif = orange avec shadow orange
+- **Grille créneaux** : 07h00 → 21h30 par 30min, 4 colonnes
+  - Pris (gris, barré) : chargé depuis `bookings` Supabase pour la date sélectionnée
+  - Disponible mais durée dépasse 22h ou conflit : fond légèrement rosé + border orange
+  - Disponible et OK pour la durée choisie : blanc + border gris
+  - Sélectionné : navy + shadow
+- Rechargement automatique des créneaux à chaque changement de date
+
+#### Confirmation
+- **CTA sticky** (apparaît quand un créneau est sélectionné) : affiche créneau sélectionné + total prix + bouton "Confirmer la réservation"
+- `handleConfirm` : insert `bookings` (terrain_id, user_id, date, start_time, end_time, status:'confirmed') → redirect `/profile/reservations`
+
+### `src/app/(main)/profile/reservations/page.tsx` — Nouvelle page (créée)
+- Header sticky : bouton retour + titre
+- **Onglets** : "À venir" / "Passées" avec compteur badge orange
+- **Cards** : emoji sport, nom terrain, date formatée, créneau (start → end), badge statut (Confirmée vert / Annulée gris)
+- **Bouton Annuler** (uniquement réservations futures non annulées) : UPDATE status='cancelled'
+- **État vide** : CTA "Voir les terrains →" si onglet "À venir"
+- Skeleton loading (3 cards)
+
+### Migration `017_bookings_visibility.sql`
+- Nouvelle policy RLS : `"Authenticated users can view terrain availability"` — `USING (auth.uid() IS NOT NULL)`
+- Permet à tout utilisateur connecté de lire les bookings d'un terrain pour afficher la disponibilité
+- **À appliquer dans Supabase SQL Editor**
+
+### Modifications
+- `src/app/(main)/fields/page.tsx` :
+  - Ajout `import Link from "next/link"`
+  - Suppression de `handleReserve` (stub setTimeout) et du state `reserving`
+  - Bouton "Réserver ce terrain" remplacé par un `<Link href="/fields/${terrain.id}">`
+- `src/app/(main)/profile/page.tsx` :
+  - Ajout icône `CalendarCheck` dans les imports lucide
+  - Nouveau lien "Mes réservations" → `/profile/reservations` dans la section Compte (fond teal)
+
+## 2026-04-27 — Espace admin : page Réservations + mise à jour Dashboard & Sidebar
+
+### `src/app/admin/reservations/page.tsx` — Nouvelle page (créée)
+
+Page de gestion des réservations dans l'espace admin :
+- Charge toutes les réservations via `bookings` avec join `terrains` + `profiles`
+- **Header** : titre "Réservations" + mini-stats card (Confirmées / Annulées côte à côte)
+- **Filtres** : chips Toutes / Confirmées / Annulées + barre de recherche (terrain ou utilisateur)
+- **Liste** : chaque ligne affiche avatar utilisateur, nom/@username, emoji sport + nom terrain + district (pill), date formatée FR + créneau horaire, badge statut coloré
+- **Annulation** : bouton X rouge uniquement pour les réservations confirmées → UPDATE status='cancelled' + mise à jour locale du state
+- **Skeleton loading** : 5 lignes pendant le fetch
+- **État vide** : emoji 📅 + message contextuel (avec ou sans filtre actif)
+
+### `src/app/admin/layout.tsx` — Ajout "Réservations" dans la sidebar
+- Nouvel item nav : icône `BookMarked` → `/admin/reservations` → label "Réservations"
+- Import `BookMarked` depuis `lucide-react` (suppression de `X` non utilisé)
+
+### `src/app/admin/page.tsx` — Stat Réservations dans le dashboard
+- Requête supplémentaire : `bookings` count avec filtre `status = 'confirmed'`
+- Nouvelle `StatCard` "Réservations" (couleur bleue `#3B82F6`, icône `BookMarked`)
+- Type `Stats` mis à jour avec `totalBookings`
+
+**TypeScript : 0 erreur**
+
+## 2026-04-27 — Gestion des sports : admin + espace utilisateur
+
+### Migration `supabase/migrations/018_sports_and_proposals.sql`
+Deux nouvelles tables :
+- **`sports`** : slug (unique), name, emoji, color, is_active, created_at — RLS : lecture publique, CRUD admin uniquement. Seedée avec les 8 sports existants (basket, foot, tennis, running, volley, padel, velo, yoga).
+- **`sport_proposals`** : user_id, name, emoji, description, status (pending/approved/rejected), admin_note — RLS : user voit ses propres proposals + admins voient tout, users INSERT, admins UPDATE, user DELETE sur ses pending.
+- **À appliquer dans Supabase SQL Editor**
+
+### `src/app/admin/sports/page.tsx` — Page admin Sports (créée)
+Deux onglets :
+- **Sports actifs** : liste tous les sports (pastille colorée, nom, slug), toggle actif/inactif (switch pill vert/gris), suppression avec confirm. Formulaire "Ajouter un sport" : nom (slug auto-généré), emoji, color picker HTML — insert dans `sports`.
+- **Propositions** : liste toutes les propositions avec join profil utilisateur, filtres chips (Toutes/En attente/Approuvées/Rejetées), recherche. Boutons Approuver (→ status='approved' + auto-insert dans `sports`) / Rejeter. Badge orange sur l'onglet avec le count pending.
+
+### `src/app/(main)/sports/page.tsx` — Page utilisateur Sports (créée)
+- Header sticky navy gradient + bouton "Proposer un sport" (orange pill)
+- Grille 2 colonnes des sports actifs (card colorée, emoji, nom)
+- Formulaire de proposition : nom, emoji, description (max 200 chars) → insert dans `sport_proposals`
+- Feedback succès "Proposition envoyée ! 🎉"
+- Section "Mes propositions" (si l'user en a) avec badge statut + bouton annuler sur les pending
+
+### Modifications
+- `src/app/admin/layout.tsx` : ajout "Sports" (icône `Dumbbell`) dans la sidebar admin
+- `src/app/(main)/profile/page.tsx` : nouveau lien "Sports & Propositions" → `/sports` (icône `Dumbbell` orange) dans la section Compte
+
+**TypeScript : 0 erreur**
