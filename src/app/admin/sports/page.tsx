@@ -165,14 +165,30 @@ export default function AdminSportsPage() {
       await supabase.from("sports").insert({ slug, name: proposal.name, emoji: proposal.emoji, color: "#8A93A6" });
       await loadSports();
     }
+    /* Notifier l'utilisateur */
+    await supabase.rpc("create_notification", {
+      p_user_id: proposal.user_id,
+      p_type: "sport_approved",
+      p_title: `${proposal.emoji} Sport approuvé !`,
+      p_body: `Votre proposition "${proposal.name}" a été acceptée et est maintenant disponible sur TeamUp!`,
+      p_data: { sport_name: proposal.name, emoji: proposal.emoji },
+    });
     setProposals((prev) => prev.map((p) => p.id === proposal.id ? { ...p, status: "approved" } : p));
     setActingId(null);
   }
 
-  async function handleReject(id: string) {
-    setActingId(id);
-    await supabase.from("sport_proposals").update({ status: "rejected" }).eq("id", id);
-    setProposals((prev) => prev.map((p) => p.id === id ? { ...p, status: "rejected" } : p));
+  async function handleReject(proposal: Proposal) {
+    setActingId(proposal.id);
+    await supabase.from("sport_proposals").update({ status: "rejected" }).eq("id", proposal.id);
+    /* Notifier l'utilisateur */
+    await supabase.rpc("create_notification", {
+      p_user_id: proposal.user_id,
+      p_type: "sport_rejected",
+      p_title: "Proposition de sport",
+      p_body: `Votre proposition "${proposal.name}" n'a pas été retenue pour le moment.`,
+      p_data: { sport_name: proposal.name },
+    });
+    setProposals((prev) => prev.map((p) => p.id === proposal.id ? { ...p, status: "rejected" } : p));
     setActingId(null);
   }
 
@@ -579,7 +595,7 @@ export default function AdminSportsPage() {
                               Approuver
                             </button>
                             <button
-                              onClick={() => handleReject(proposal.id)}
+                              onClick={() => handleReject(proposal)}
                               disabled={isActing}
                               title="Rejeter"
                               style={{

@@ -6,15 +6,7 @@ import { useRouter } from "next/navigation";
 import { Bell, Search, ChevronDown, SlidersHorizontal, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Event, Profile } from "@/lib/supabase";
-
-const SPORTS = [
-  { id: "all", label: "Tous", emoji: "" },
-  { id: "basket", label: "Basket", emoji: "🏀", color: "#FF6B35", soft: "#FFE6DA" },
-  { id: "foot", label: "Foot", emoji: "⚽", color: "#2EC4B6", soft: "#D6F4F1" },
-  { id: "tennis", label: "Tennis", emoji: "🎾", color: "#F4B43A", soft: "#FEF3C7" },
-  { id: "running", label: "Running", emoji: "🏃", color: "#7B61FF", soft: "#EDE9FE" },
-  { id: "volley", label: "Volley", emoji: "🏐", color: "#EC4899", soft: "#FCE7F3" },
-];
+import { useSports } from "@/lib/useSports";
 
 const EVENTS = [
   {
@@ -78,9 +70,9 @@ function AvatarStack({ colors }: { colors: string[] }) {
   );
 }
 
-function EventCard({ event }: { event: Event }) {
+function EventCard({ event, sportRecord }: { event: Event; sportRecord: Record<string, { label: string; emoji: string; color: string; soft: string }> }) {
   const [joined, setJoined] = useState(false);
-  const meta = SPORT_META[event.sport] ?? { label: event.sport, emoji: "🏅", color: "#8A93A6", soft: "#F1F3F7" };
+  const meta = sportRecord[event.sport] ?? { label: event.sport, emoji: "🏅", color: "#8A93A6", soft: "#F1F3F7" };
   const dateStr = new Date(event.event_date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
   const dur = event.duration_min >= 60 ? `${Math.floor(event.duration_min / 60)}h${event.duration_min % 60 ? event.duration_min % 60 : ""}` : `${event.duration_min}min`;
 
@@ -224,16 +216,6 @@ function MiniMapPlaceholder() {
   );
 }
 
-const SPORT_META: Record<string, { label: string; emoji: string; color: string; soft: string }> = {
-  basket:  { label: "Basket",  emoji: "🏀", color: "#FF6B35", soft: "#FFE6DA" },
-  foot:    { label: "Foot",    emoji: "⚽", color: "#2EC4B6", soft: "#D6F4F1" },
-  tennis:  { label: "Tennis",  emoji: "🎾", color: "#F4B43A", soft: "#FEF3C7" },
-  running: { label: "Running", emoji: "🏃", color: "#7B61FF", soft: "#EDE9FE" },
-  volley:  { label: "Volley",  emoji: "🏐", color: "#EC4899", soft: "#FCE7F3" },
-  padel:   { label: "Padel",   emoji: "🏓", color: "#3B82F6", soft: "#DBEAFE" },
-  velo:    { label: "Vélo",    emoji: "🚴", color: "#06B6D4", soft: "#CFFAFE" },
-  yoga:    { label: "Yoga",    emoji: "🧘", color: "#14B8A6", soft: "#CCFBF1" },
-};
 
 const LEVEL_LABELS: Record<string, string> = {
   all: "Tous niveaux", beginner: "Débutant",
@@ -242,6 +224,8 @@ const LEVEL_LABELS: Record<string, string> = {
 
 export default function HomePage() {
   const router = useRouter();
+  const { sports: dbSports, sportRecord } = useSports();
+  const SPORTS = [{ id: "all", label: "Tous", emoji: "", color: "", soft: "" }, ...dbSports];
   const [activeSport, setActiveSport] = useState("all");
   const [events, setEvents] = useState<Event[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -517,7 +501,7 @@ export default function HomePage() {
           {loadingEvents ? (
             [1, 2].map((i) => <div key={i} className="skeleton" style={{ height: 110, borderRadius: 18 }} />)
           ) : filteredEvents.length > 0 ? (
-            filteredEvents.map((event) => <EventCard key={event.id} event={event} />)
+            filteredEvents.map((event) => <EventCard key={event.id} event={event} sportRecord={sportRecord} />)
           ) : (
             <div className="flex flex-col items-center justify-center"
               style={{ background: "#fff", borderRadius: 18, padding: "32px 20px", border: "1px solid #E5E8EE", color: "#8A93A6", fontSize: 14, fontWeight: 600, gap: 8 }}>

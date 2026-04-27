@@ -6,9 +6,8 @@ import { useRouter } from "next/navigation";
 import { Search, Users, X, ChevronDown } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Team } from "@/lib/supabase";
-import { SPORT_META, LEVEL_LABELS } from "@/lib/utils";
-
-const SPORTS_LIST = Object.entries(SPORT_META).map(([id, meta]) => ({ id, ...meta }));
+import { LEVEL_LABELS } from "@/lib/utils";
+import { useSports } from "@/lib/useSports";
 
 const LEVELS = [
   { id: "all", label: "Tous niveaux" },
@@ -25,10 +24,9 @@ type CreateForm = {
   isPublic: boolean;
 };
 
-const EMPTY_FORM: CreateForm = { name: "", sport: "basket", level: "all", location: "", isPublic: true };
-
 export default function TeamsPage() {
   const router = useRouter();
+  const { sports: SPORTS_LIST, sportRecord: SPORT_META } = useSports();
   const [myTeams, setMyTeams] = useState<Team[]>([]);
   const [publicTeams, setPublicTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +35,7 @@ export default function TeamsPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState<CreateForm>(EMPTY_FORM);
+  const [form, setForm] = useState<CreateForm>({ name: "", sport: "", level: "all", location: "", isPublic: true });
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -88,7 +86,7 @@ export default function TeamsPage() {
     if (!error && newTeam) {
       await supabase.from("team_members").insert({ team_id: newTeam.id, user_id: currentUserId, role: "owner" });
       setShowCreate(false);
-      setForm(EMPTY_FORM);
+      setForm({ name: "", sport: "", level: "all", location: "", isPublic: true });
       setCreating(false);
       router.push(`/teams/${newTeam.id}`);
     } else {
@@ -184,7 +182,7 @@ export default function TeamsPage() {
                     <div className="flex items-center gap-3 tap-scale"
                       style={{ padding: "14px 16px", borderBottom: idx < filteredMine.length - 1 ? "1px solid #F1F3F7" : "none" }}>
                       <div className="relative flex-shrink-0">
-                        <div style={{ width: 48, height: 48, borderRadius: 14, background: meta.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
+                        <div style={{ width: 48, height: 48, borderRadius: 14, background: meta.soft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>
                           {meta.emoji}
                         </div>
                         <div style={{ position: "absolute", width: 10, height: 10, borderRadius: "50%", background: "#22C55E", border: "2px solid #fff", bottom: -1, right: -1 }} />
@@ -236,7 +234,7 @@ export default function TeamsPage() {
                 return (
                   <div key={team.id} style={{ background: "#fff", borderRadius: 18, border: "1px solid #E5E8EE", padding: "14px 16px", boxShadow: "0 1px 0 rgba(26,43,74,0.04), 0 8px 28px -16px rgba(26,43,74,0.12)" }}>
                     <div className="flex items-center gap-3">
-                      <div style={{ width: 48, height: 48, borderRadius: 14, background: meta.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
+                      <div style={{ width: 48, height: 48, borderRadius: 14, background: meta.soft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>
                         {meta.emoji}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>

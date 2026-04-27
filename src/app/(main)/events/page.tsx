@@ -5,27 +5,7 @@ import Link from "next/link";
 import { Search, Clock, MapPin } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Event } from "@/lib/supabase";
-
-const SPORT_FILTERS = [
-  { id: "all",     label: "Tous",    emoji: "" },
-  { id: "basket",  label: "Basket",  emoji: "🏀", color: "#FF6B35", soft: "#FFE6DA" },
-  { id: "foot",    label: "Foot",    emoji: "⚽", color: "#2EC4B6", soft: "#D6F4F1" },
-  { id: "tennis",  label: "Tennis",  emoji: "🎾", color: "#F4B43A", soft: "#FEF3C7" },
-  { id: "running", label: "Running", emoji: "🏃", color: "#7B61FF", soft: "#EDE9FE" },
-  { id: "volley",  label: "Volley",  emoji: "🏐", color: "#EC4899", soft: "#FCE7F3" },
-  { id: "padel",   label: "Padel",   emoji: "🏓", color: "#3B82F6", soft: "#DBEAFE" },
-];
-
-const SPORT_META: Record<string, { emoji: string; color: string; soft: string }> = {
-  basket:  { emoji: "🏀", color: "#FF6B35", soft: "#FFE6DA" },
-  foot:    { emoji: "⚽", color: "#2EC4B6", soft: "#D6F4F1" },
-  tennis:  { emoji: "🎾", color: "#F4B43A", soft: "#FEF3C7" },
-  running: { emoji: "🏃", color: "#7B61FF", soft: "#EDE9FE" },
-  volley:  { emoji: "🏐", color: "#EC4899", soft: "#FCE7F3" },
-  padel:   { emoji: "🏓", color: "#3B82F6", soft: "#DBEAFE" },
-  velo:    { emoji: "🚴", color: "#06B6D4", soft: "#CFFAFE" },
-  yoga:    { emoji: "🧘", color: "#14B8A6", soft: "#CCFBF1" },
-};
+import { useSports } from "@/lib/useSports";
 
 const LEVEL_LABELS: Record<string, string> = {
   all: "Tous niveaux", beginner: "Débutant",
@@ -51,8 +31,8 @@ function AvatarStack({ count, max }: { count: number; max: number }) {
   );
 }
 
-function EventCard({ event, joined, onJoin }: { event: Event; joined: boolean; onJoin: () => void }) {
-  const meta = SPORT_META[event.sport] ?? { emoji: "🏅", color: "#8A93A6", soft: "#F1F3F7" };
+function EventCard({ event, joined, onJoin, sportRecord }: { event: Event; joined: boolean; onJoin: () => void; sportRecord: Record<string, { label: string; emoji: string; color: string; soft: string }> }) {
+  const meta = sportRecord[event.sport] ?? { label: event.sport, emoji: "🏅", color: "#8A93A6", soft: "#F1F3F7" };
   const fillPct = Math.round((event.current_players / event.max_players) * 100);
   const almostFull = event.current_players >= event.max_players - 1;
 
@@ -140,6 +120,8 @@ function EventCard({ event, joined, onJoin }: { event: Event; joined: boolean; o
 }
 
 export default function EventsPage() {
+  const { sports: dbSports, sportRecord } = useSports();
+  const SPORT_FILTERS = [{ id: "all", label: "Tous", emoji: "" }, ...dbSports];
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSport, setActiveSport] = useState("all");
@@ -238,7 +220,7 @@ export default function EventsPage() {
           </div>
         ) : (
           filtered.map((event) => (
-            <EventCard key={event.id} event={event} joined={joinedIds.has(event.id)} onJoin={() => toggleJoin(event.id)} />
+            <EventCard key={event.id} event={event} joined={joinedIds.has(event.id)} onJoin={() => toggleJoin(event.id)} sportRecord={sportRecord} />
           ))
         )}
       </div>

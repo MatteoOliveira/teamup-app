@@ -5,11 +5,8 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, Search, Check, Navigation, Copy, ExternalLink } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Terrain, Team } from "@/lib/supabase";
-import { SPORT_META, formatDuration } from "@/lib/utils";
-
-/* ─── Static data ─────────────────────────────────────────────── */
-
-const SPORTS = Object.entries(SPORT_META).map(([id, meta]) => ({ id, ...meta }));
+import { formatDuration } from "@/lib/utils";
+import { useSports } from "@/lib/useSports";
 
 const LEVELS = [
   { id: "Tous",          label: "Tous",     color: "#1A2B4A" },
@@ -143,6 +140,7 @@ function InviteModal({ eventId, onClose }: { eventId: string; onClose: () => voi
 /* ─── Main ────────────────────────────────────────────────────── */
 export default function CreateEventPage() {
   const router = useRouter();
+  const { sports: SPORTS, sportRecord: SPORT_META } = useSports();
   const [step, setStep]                         = useState(0);
   const [animIn, setAnimIn]                     = useState(true);
   const [publishing, setPublishing]             = useState(false);
