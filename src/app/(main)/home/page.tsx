@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Search, ChevronDown, SlidersHorizontal, Plus } from "lucide-react";
+import { Bell, Search, ChevronDown, SlidersHorizontal, Plus, Download, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Event, Profile } from "@/lib/supabase";
 import { useSports } from "@/lib/useSports";
+import { useInstallPWA } from "@/lib/useInstallPWA";
 
 const EVENTS = [
   {
@@ -225,6 +226,10 @@ const LEVEL_LABELS: Record<string, string> = {
 export default function HomePage() {
   const router = useRouter();
   const { sports: dbSports, sportRecord } = useSports();
+  const { canInstall, isIOS, isInstalled, install, hasNativePrompt } = useInstallPWA();
+  const [installDismissed, setInstallDismissed] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const showInstallBanner = canInstall && !installDismissed;
   const SPORTS = [{ id: "all", label: "Tous", emoji: "", color: "", soft: "" }, ...dbSports];
   const [activeSport, setActiveSport] = useState("all");
   const [events, setEvents] = useState<Event[]>([]);
@@ -404,6 +409,59 @@ export default function HomePage() {
           </div>
         ))}
       </div>
+
+      {/* ── Bannière installation PWA ── */}
+      {showInstallBanner && (
+        <div style={{ margin: "14px 16px 0" }}>
+          <div className="flex items-center gap-3"
+            style={{
+              background: "linear-gradient(135deg, #7B61FF14, #5B41DF0A)",
+              border: "1.5px solid #7B61FF30",
+              borderRadius: 16, padding: "12px 14px",
+            }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+              background: "linear-gradient(135deg, #7B61FF, #5B41DF)",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
+            }}>
+              📲
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 800, color: "#1A2B4A", lineHeight: 1.2 }}>
+                Installe TeamUp! sur ton téléphone
+              </p>
+              <p style={{ fontSize: 11, fontWeight: 600, color: "#8A93A6", marginTop: 2 }}>
+                {isIOS ? "Safari → Partager → Sur l'écran d'accueil" : "Accès rapide, même hors connexion"}
+              </p>
+            </div>
+            {!isIOS && hasNativePrompt && (
+              <button
+                onClick={async () => { setInstalling(true); await install(); setInstalling(false); }}
+                disabled={installing}
+                style={{
+                  height: 32, borderRadius: 999, padding: "0 12px",
+                  background: "linear-gradient(135deg, #7B61FF, #5B41DF)",
+                  border: "none", cursor: "pointer",
+                  fontSize: 12, fontWeight: 700, color: "#fff",
+                  flexShrink: 0, opacity: installing ? 0.7 : 1,
+                  display: "flex", alignItems: "center", gap: 5,
+                }}>
+                <Download size={12} strokeWidth={2.5} />
+                {installing ? "…" : "Installer"}
+              </button>
+            )}
+            <button
+              onClick={() => setInstallDismissed(true)}
+              style={{
+                width: 26, height: 26, borderRadius: 8, border: "none",
+                background: "rgba(26,43,74,0.06)", cursor: "pointer", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+              <X size={13} color="#8A93A6" strokeWidth={2.5} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sports chips */}
       <div style={{ marginTop: 20, paddingLeft: 16, paddingRight: 16 }}>
