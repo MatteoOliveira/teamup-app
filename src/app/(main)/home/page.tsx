@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, Search, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { Bell, Search, ChevronDown, SlidersHorizontal, Plus } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Event, Profile } from "@/lib/supabase";
 
@@ -469,6 +469,24 @@ export default function HomePage() {
             );
           })}
         </div>
+      </div>
+
+      {/* Proposer un sport */}
+      <div style={{ padding: "10px 16px 0" }}>
+        <Link
+          href="/sports"
+          className="flex items-center justify-center gap-2 tap-scale"
+          style={{
+            height: 40, borderRadius: 999,
+            background: "rgba(255,107,53,0.08)",
+            border: "1.5px dashed rgba(255,107,53,0.4)",
+            color: "#FF6B35", textDecoration: "none",
+            fontSize: 13, fontWeight: 700,
+          }}
+        >
+          <Plus size={15} strokeWidth={2.5} />
+          Proposer un sport
+        </Link>
       </div>
 
       {/* Mini Map */}
